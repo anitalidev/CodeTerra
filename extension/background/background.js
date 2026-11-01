@@ -1,7 +1,21 @@
-const BACKEND_URL = "http://localhost:8000";
+const DEV_BACKEND_URL = "http://localhost:8000";
+// Your Railway address, like "https://codeterra-production.up.railway.app" (no trailing slash).
+const PRODUCTION_BACKEND_URL = "https://codeterra-production.up.railway.app";
 const KEEP_ALIVE_MS = 20000;
 // /contest/2104/problem/A  or  /problemset/problem/380/C
 const PROBLEM_URL_PATTERN = /\/(?:contest\/(\d+)\/problem\/|problemset\/problem\/(\d+)\/)([^/?#]+)/;
+
+// The popup's "Dev mode" switch picks the local backend; otherwise the deployed one is used.
+async function getBackendUrl() {
+    const { devMode } = await chrome.storage.local.get({ devMode: false });
+    if (devMode) {
+        return DEV_BACKEND_URL;
+    }
+    if (!PRODUCTION_BACKEND_URL) {
+        throw new Error("No production backend URL is set. Turn on Dev mode, or set PRODUCTION_BACKEND_URL in background.js");
+    }
+    return PRODUCTION_BACKEND_URL;
+}
 
 async function labelProblem(tab) {
     console.log("CodeTerra: asking tab for problem text", tab.id, tab.url);
@@ -18,8 +32,9 @@ async function labelProblem(tab) {
     const contestID = match[1] ?? match[2];
     const index = match[3];
 
-    console.log("CodeTerra: calling backend", contestID, index);
-    const response = await fetch(`${BACKEND_URL}/problems/${contestID}/${encodeURIComponent(index)}`, {
+    const backendUrl = await getBackendUrl();
+    console.log("CodeTerra: calling backend", backendUrl, contestID, index);
+    const response = await fetch(`${backendUrl}/problems/${contestID}/${encodeURIComponent(index)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ problemText: reply.text }),
