@@ -1,0 +1,35 @@
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from schemas.code_submission import CodeSubmission, RunResult, Runners
+from services.language_repository import LanguageOption
+from services.runner_registry import registry
+
+router = APIRouter(prefix="/runners", tags=["runners"])
+
+class RunnerOption(BaseModel):
+    id: Runners
+    label: str
+    credential_fields: list[str]
+    languages: list[LanguageOption]
+
+
+@router.get(path="/options", response_model=list[RunnerOption],
+            description="The code runners a user can choose from, each with the languages it supports")
+async def get_options():
+    return [
+        RunnerOption(
+            id=spec.runner,
+            label=spec.label,
+            credential_fields=list(spec.credential_fields),
+            languages=registry.options(spec.runner),
+        )
+        for spec in registry.specs()
+    ]
+
+
+@router.post("/run", response_model=RunResult)
+async def run_code(
+    submission: CodeSubmission
+):
+    pass

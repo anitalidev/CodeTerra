@@ -81,3 +81,8 @@ body {
     font-size: 12px;
     color: #666;
 }
+
+select.text-input {
+    font: 13px Arial, sans-serif;
+    background: #fff;
+}

@@ -22,6 +22,7 @@
       "js": [
         "content/problem-to-markdown.js",
         "content/problem-text.js",
+        "content/editor-panel.js",
         "content/problem-additions-script.js"
       ],
       "matches": [
@@ -46,9 +47,19 @@
   "host_permissions": [
     "https://codeforces.com/*",
     "http://localhost:8000/*",
-    "https://*.up.railway.app/*"
+    "https://codeterra-production.up.railway.app/*"
   ],
   "permissions": [
     "storage"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "editor/*"
+      ],
+      "matches": [
+        "https://codeforces.com/*"
+      ]
+    }
   ]
 }
