@@ -11,7 +11,7 @@ const SAVE_DELAY_MS = 400;
 
 const EDITOR_OPTIONS = {
     minimap: { enabled: false },
-    fontSize: 14,
+    fontSize: 13,
     tabSize: 4,
     scrollBeyondLastLine: false,
     automaticLayout: true,

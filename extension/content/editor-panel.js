@@ -14,6 +14,9 @@ const DIVIDER_WIDTH_PX = 1;  // the editor frame's left border
 
 const EDITOR_HASH = "#editor-view";  // in the URL while the editor view is open
 const SPLIT_CLASS = "codeterra-split";
+const SHOW_TAGS_CLASS = "codeterra-show-tags";
+const SUBMIT_CLASS = "codeterra-submit";
+const LAST_SUBMISSIONS_CLASS = "codeterra-last-submissions";
 const DRAGGING_CLASS = "codeterra-dragging";
 const SPLIT_STYLE_ID = "codeterra-split-styles";
 const EDITOR_PROBLEM_PATTERN = /\/(?:contest\/(\d+)\/problem\/|problemset\/problem\/(\d+)\/)([^/?#]+)/;
@@ -108,7 +111,8 @@ function createResizeHandle(frame) {
 // Codeforces gives its layout a 920px minimum width and a sidebar next to the content, so the
 // sidebar's boxes are stacked instead. What we don't need while coding is pushed to the bottom
 // (the contest menu bar, the logo and the main menu are hidden). Top to bottom: the problem,
-// the Problem tags box, the other boxes, then the footer. (`display: contents` lets the
+// the contest box, the Problem tags box (collapsed until clicked), the Submit box, your last
+// submissions, the other boxes, then the footer. (`display: contents` lets the
 // boxes be ordered as if they weren't in the sidebar.)
 function addLayoutStyles() {
     if (document.getElementById(SPLIT_STYLE_ID)) {
@@ -132,8 +136,22 @@ function addLayoutStyles() {
         ${split} div:has(> #pageContent) { display: flex !important; flex-direction: column; }
         ${split} #pageContent { order: -1; width: auto !important; margin: 6px 14px 14px !important; padding-top: 0 !important; }
         ${split} #sidebar { display: contents !important; }
-        ${split} #sidebar > .sidebox { order: 2; margin: 0 14px 14px !important; width: auto !important; }
-        ${split} #sidebar > .sidebox:has(.tag-box) { order: 1; }  /* tags, right under the problem */
+        ${split} #sidebar > .sidebox { order: 5; margin: 0 14px 14px !important; width: auto !important; }
+        ${split} #sidebar > .sidebox:first-child { order: 1; }  /* the contest box, right under the problem */
+        ${split} #sidebar > .sidebox:has(.tag-box) { order: 2; }  /* then the tags */
+        ${split} #sidebar > .sidebox.${SUBMIT_CLASS} { order: 3; }  /* then the Submit box */
+        ${split} #sidebar > .sidebox.${LAST_SUBMISSIONS_CLASS} { order: 4; }  /* then your last submissions */
+
+        /* The tags can give away the solution, so they start hidden; clicking the title shows them. */
+        ${split} #sidebar > .sidebox:has(.tag-box) > .caption { cursor: pointer; }
+        ${split}:not(.${SHOW_TAGS_CLASS}) #sidebar > .sidebox:has(.tag-box) > :not(.caption) { display: none !important; }
+        ${split} #sidebar > .sidebox:has(.tag-box) > .caption::after {
+            content: " (click to show)";
+            font-size: 0.7em;
+            font-weight: normal;
+            color: #888;
+        }
+        ${split}.${SHOW_TAGS_CLASS} #sidebar > .sidebox:has(.tag-box) > .caption::after { content: " (click to hide)"; }
         ${split} .second-level-menu { display: none !important; }  /* the contest menu bar */
 
         .codeterra-editor-handle:hover { background: rgba(59, 89, 152, 0.25); }
@@ -146,7 +164,39 @@ function addLayoutStyles() {
 function setPageShrunk(shrunk) {
     addLayoutStyles();
     document.documentElement.classList.toggle(SPLIT_CLASS, shrunk);
+    if (shrunk) {
+        markSidebarBoxes();
+    } else {
+        document.documentElement.classList.remove(SHOW_TAGS_CLASS);  // hidden again next time
+    }
 }
+
+// The Submit and "Last submissions" boxes have no distinctive class, so find them by their titles.
+function markSidebarBoxes() {
+    for (const box of document.querySelectorAll("#sidebar > .sidebox")) {
+        const title = box.querySelector(":scope > .caption")?.textContent ?? "";
+        box.classList.toggle(SUBMIT_CLASS, /^[^a-z]*submit\b/i.test(title));
+        box.classList.toggle(LAST_SUBMISSIONS_CLASS, /last submissions/i.test(title));
+    }
+}
+
+// The box can appear after the page loads (for example after a submission), so keep looking.
+const sidebar = document.getElementById("sidebar");
+if (sidebar) {
+    new MutationObserver(() => {
+        if (document.documentElement.classList.contains(SPLIT_CLASS)) {
+            markSidebarBoxes();
+        }
+    }).observe(sidebar, { childList: true });
+}
+
+// Clicking the Problem tags title shows or hides the tags while the editor view is open.
+document.addEventListener("click", (event) => {
+    const root = document.documentElement;
+    if (root.classList.contains(SPLIT_CLASS) && event.target.closest("#sidebar > .sidebox:has(.tag-box) > .caption")) {
+        root.classList.toggle(SHOW_TAGS_CLASS);
+    }
+});
 
 // Puts the editor view in the page address (or takes it out) without adding a history entry.
 function setEditorHash(open) {
