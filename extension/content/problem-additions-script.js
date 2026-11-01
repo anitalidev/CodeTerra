@@ -119,6 +119,9 @@ async function addExtraTags() {
         const response = await chrome.runtime.sendMessage({ type: "LABEL_PROBLEM_EXTRA_TAGS" });
         if (!response?.ok) {
             console.error("CodeTerra: could not get extra tags:", response?.error);
+            if (response?.code === "API_KEY_PROBLEM") {
+                showExtraTags([response.error]);  // tells the user what to fix, in the tag box
+            }
             return;
         }
         showExtraTags(response.tags);

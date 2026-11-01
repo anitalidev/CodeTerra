@@ -8,7 +8,7 @@ load_dotenv()
 
 import models  # noqa: F401  (registers tables on Base.metadata)
 from database import Base, engine
-from openai import APIError
+from openai import APIError, AuthenticationError
 from pydantic import ValidationError
 from routers import problems
 from services.tag_labeling import TagLabelingError
@@ -35,6 +35,11 @@ async def health():
 @app.exception_handler(TagLabelingError)
 async def tag_labeling_error_handler(request: Request, exc: TagLabelingError):
     return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+
+@app.exception_handler(AuthenticationError)
+async def openai_key_rejected_handler(request: Request, exc: AuthenticationError):
+    return JSONResponse(status_code=401, content={"detail": "OpenAI rejected your API key. Check it in the CodeTerra popup."})
 
 
 @app.exception_handler(APIError)
