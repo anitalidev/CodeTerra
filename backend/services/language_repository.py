@@ -1,5 +1,3 @@
-from collections.abc import Mapping
-
 from pydantic import BaseModel, ConfigDict
 
 from schemas.code_submission import Runners
@@ -24,28 +22,3 @@ class LanguageOption(BaseModel):
 class UnknownLanguage(Exception):
     def __init__(self, runner: Runners, language_id: str):
         super().__init__(f"{runner.value} does not support the language '{language_id}'.")
-
-
-class LanguageRepository:
-    def __init__(self) -> None:
-        self._languages: dict[Runners, Mapping[str, LanguageEntry]] = {}
-
-    def register(self, runner: Runners, languages: Mapping[str, LanguageEntry]) -> None:
-        if runner in self._languages:
-            raise ValueError(f"{runner.value} is already registered")
-        self._languages[runner] = languages
-
-    def runners(self) -> list[Runners]:
-        return list(self._languages)
-
-    def options(self, runner: Runners) -> list[LanguageOption]:
-        return [
-            LanguageOption(id=entry.id, label=entry.presented_name)
-            for entry in self._languages[runner].values()
-        ]
-
-    def get(self, runner: Runners, language_id: str) -> LanguageEntry:
-        try:
-            return self._languages[runner][language_id]
-        except KeyError:
-            raise UnknownLanguage(runner, language_id) from None

@@ -2,18 +2,15 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from schemas.code_submission import CodeSubmission, RunResult, Runners
-from services.language_registry import repository
 from services.language_repository import LanguageOption
+from services.runner_registry import registry
 
 router = APIRouter(prefix="/runners", tags=["runners"])
-
-RUNNER_LABELS = {
-    Runners.JDOODLE: "JDoodle",
-}
 
 class RunnerOption(BaseModel):
     id: Runners
     label: str
+    credential_fields: list[str]
     languages: list[LanguageOption]
 
 
@@ -21,8 +18,13 @@ class RunnerOption(BaseModel):
             description="The code runners a user can choose from, each with the languages it supports")
 async def get_options():
     return [
-        RunnerOption(id=runner, label=RUNNER_LABELS[runner], languages=repository.options(runner))
-        for runner in repository.runners()
+        RunnerOption(
+            id=spec.runner,
+            label=spec.label,
+            credential_fields=list(spec.credential_fields),
+            languages=registry.options(spec.runner),
+        )
+        for spec in registry.specs()
     ]
 
 

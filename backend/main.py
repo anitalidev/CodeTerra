@@ -11,6 +11,7 @@ from database import Base, engine
 from openai import APIError, AuthenticationError
 from pydantic import ValidationError
 from routers import problems, runners
+from services.code_runner import RunnerAuthError, RunnerError
 from services.language_repository import UnknownLanguage
 from services.tag_labeling import TagLabelingError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -42,6 +43,16 @@ async def tag_labeling_error_handler(request: Request, exc: TagLabelingError):
 @app.exception_handler(UnknownLanguage)
 async def unknown_language_handler(request: Request, exc: UnknownLanguage):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(RunnerAuthError)
+async def runner_auth_error_handler(request: Request, exc: RunnerAuthError):
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+@app.exception_handler(RunnerError)
+async def runner_error_handler(request: Request, exc: RunnerError):
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 @app.exception_handler(AuthenticationError)

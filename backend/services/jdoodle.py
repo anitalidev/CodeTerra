@@ -1,6 +1,18 @@
+import httpx
 from pydantic import BaseModel
 
-from services.language_repository import LanguageEntry
+from schemas.code_submission import Runners
+from services.code_runner import (
+    CodeRunner,
+    ExecutionRequest,
+    ExecutionResult,
+    RunnerAuthError,
+    RunnerError,
+)
+from services.language_repository import LanguageEntry, UnknownLanguage
+
+EXECUTE_URL = "https://api.jdoodle.com/v1/execute"
+REQUEST_TIMEOUT_S = 30
 
 
 class JDoodleLanguage(LanguageEntry):
@@ -61,3 +73,59 @@ class JDoodleExecuteBody(BaseModel):
     script: str  # the code to run
     stdin: str  # the input
     compileOnly: bool = False
+
+
+class JDoodleRunner(CodeRunner):
+    CREDENTIAL_FIELDS = ("client_id", "client_secret")
+
+    def __init__(self, credentials, transport: httpx.AsyncBaseTransport | None = None) -> None:
+        super().__init__(credentials)
+        self._transport = transport  # only tests pass one
+
+    async def run(self, request: ExecutionRequest) -> ExecutionResult:
+        language = LANGUAGES.get(request.language_id)
+        if language is None:
+            raise UnknownLanguage(Runners.JDOODLE, request.language_id)
+
+        body = JDoodleExecuteBody(
+            clientId=self.credentials["client_id"],
+            clientSecret=self.credentials["client_secret"],
+            language=language.language,
+            versionIndex=language.version_index,
+            script=request.source_code,
+            stdin=request.stdin,
+        )
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_S, transport=self._transport) as client:
+                response = await client.post(EXECUTE_URL, json=body.model_dump())
+        except httpx.HTTPError as error:
+            raise RunnerError("Could not reach JDoodle.") from error
+
+        if response.status_code in (401, 403):
+            raise RunnerAuthError("JDoodle rejected your credentials. Check them in the CodeTerra popup.")
+        if response.status_code == 429:
+            raise RunnerError("JDoodle is rate limiting you, or your daily credits are used up.")
+        if response.status_code != 200:
+            raise RunnerError(f"JDoodle returned an error ({response.status_code}).")
+
+        data = response.json()
+        return ExecutionResult(
+            output=data.get("output") or "",
+            time_s=_to_float(data.get("cpuTime")),
+            memory_kb=_to_int(data.get("memory")),
+        )
+
+
+# JDoodle sends time and memory as strings, and null when it has no figure.
+def _to_float(value) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_int(value) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
