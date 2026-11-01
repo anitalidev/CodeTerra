@@ -20,7 +20,9 @@
     },
     {
       "js": [
-        "content/tag-script.js"
+        "content/problem-to-markdown.js",
+        "content/problem-text.js",
+        "content/problem-additions-script.js"
       ],
       "matches": [
         "https://codeforces.com/contest/*/problem/*"

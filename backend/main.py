@@ -27,6 +27,11 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(problems.router)
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.exception_handler(TagLabelingError)
 async def tag_labeling_error_handler(request: Request, exc: TagLabelingError):
     return JSONResponse(status_code=502, content={"detail": str(exc)})
