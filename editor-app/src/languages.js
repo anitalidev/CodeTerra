@@ -1,14 +1,43 @@
-export const LANGUAGES = [
-    { id: "cpp", label: "C++", monaco: "cpp" },
-    { id: "python", label: "Python", monaco: "python" },
-    { id: "java", label: "Java", monaco: "java" },
-    { id: "javascript", label: "JavaScript", monaco: "javascript" },
-    { id: "rust", label: "Rust", monaco: "rust" },
-    { id: "go", label: "Go", monaco: "go" },
-    { id: "kotlin", label: "Kotlin", monaco: "kotlin" },
+// Used until the backend has told us (or the cache remembers) which languages the runner offers.
+export const FALLBACK_LANGUAGES = [
+    { id: "CPP_17", label: "C++17" },
+    { id: "PYTHON_3", label: "Python 3" },
+    { id: "JAVA_21", label: "Java 21" },
+    { id: "NODE_JS", label: "JavaScript (Node.js)" },
+    { id: "RUST", label: "Rust" },
+    { id: "GO", label: "Go" },
+    { id: "KOTLIN_2_3", label: "Kotlin" },
 ];
 
-export const STARTER_CODE = {
+// The editor used these ids before languages came from the runner; saved code is moved over.
+export const LEGACY_LANGUAGE_IDS = {
+    cpp: "CPP_17",
+    python: "PYTHON_3",
+    java: "JAVA_21",
+    javascript: "NODE_JS",
+    rust: "RUST",
+    go: "GO",
+    kotlin: "KOTLIN_2_3",
+};
+
+// Runner language ids look like CPP_17 or PYTHON_3; the part before the first "_" says which
+// Monaco language highlights it. Anything missing here is shown as plain text.
+const MONACO_BY_ROOT = {
+    C: "cpp", CPP: "cpp",
+    CSHARP: "csharp", FSHARP: "fsharp",
+    GO: "go", RUST: "rust",
+    JAVA: "java", KOTLIN: "kotlin", SCALA: "scala",
+    FREE: "pascal",
+    PERL: "perl", PHP: "php", RUBY: "ruby",
+    PYTHON: "python", PYPY: "python",
+    NODE: "javascript",
+};
+
+export function monacoLanguage(id) {
+    return MONACO_BY_ROOT[id.split("_")[0]] ?? "plaintext";
+}
+
+const STARTER_BY_MONACO_LANGUAGE = {
     cpp: `#include <bits/stdc++.h>
 using namespace std;
 
@@ -66,3 +95,14 @@ fun main() {
 }
 `,
 };
+
+const C_STARTER = `#include <stdio.h>
+
+int main(void) {
+    return 0;
+}
+`;
+
+export function starterCode(id) {
+    return id === "C" ? C_STARTER : STARTER_BY_MONACO_LANGUAGE[monacoLanguage(id)] ?? "";
+}

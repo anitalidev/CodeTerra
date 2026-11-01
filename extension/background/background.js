@@ -57,6 +57,35 @@ async function labelProblem(tab) {
     return (await response.json()).extraTags;
 }
 
+// The code runners (JDoodle, ...) the backend offers, each with its languages and the credentials
+// it needs. The last good answer is kept in storage so the popup and editor still work offline.
+async function getRunnerOptions() {
+    try {
+        const response = await fetch(`${await getBackendUrl()}/runners/options`);
+        if (!response.ok) {
+            throw new Error(`Backend returned ${response.status}`);
+        }
+        const options = await response.json();
+        await chrome.storage.local.set({ runnerOptions: options });
+        return { ok: true, options };
+    } catch (error) {
+        console.error("CodeTerra: could not load runner options", error);
+        const { runnerOptions } = await chrome.storage.local.get({ runnerOptions: null });
+        if (runnerOptions) {
+            return { ok: true, options: runnerOptions, stale: true };
+        }
+        return { ok: false, error: error.message };
+    }
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type !== "GET_RUNNER_OPTIONS") {
+        return;
+    }
+    getRunnerOptions().then(sendResponse);
+    return true;
+});
+
 // Not async: Chrome ignores a Promise returned from this listener, so the async work runs
 // inside and the listener returns true to keep the channel open for sendResponse.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
