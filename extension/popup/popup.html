@@ -12,6 +12,16 @@
         <span class="switch" aria-hidden="true"></span>
     </label>
     <label class="field">
+        <span class="setting-label">Editor theme</span>
+        <!-- The option values are Monaco theme ids; keep them in step with editor-app/src/themes.js -->
+        <select id="editor-theme" class="text-input">
+            <option value="vs">Light</option>
+            <option value="vs-dark">Dark</option>
+            <option value="hc-light">High contrast light</option>
+            <option value="hc-black">High contrast dark</option>
+        </select>
+    </label>
+    <label class="field">
         <span class="setting-label">OpenAI API key</span>
         <input type="password" id="openai-key" class="text-input" placeholder="sk-..." autocomplete="off" spellcheck="false">
         <span id="key-status" class="hint">Needed to label new problems. Stored only in this browser and sent to the CodeTerra backend with each request.</span>

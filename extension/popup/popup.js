@@ -21,3 +21,13 @@ keyInput.addEventListener("change", async () => {
     keyStatus.textContent = keyInput.value.trim() ? "Saved." : "Key removed.";
     setTimeout(() => (keyStatus.textContent = KEY_HINT), 2000);
 });
+
+const themeSelect = document.getElementById("editor-theme");
+
+chrome.storage.local.get({ editorTheme: "vs" }).then(({ editorTheme }) => {
+    themeSelect.value = editorTheme;
+});
+
+themeSelect.addEventListener("change", () => {
+    chrome.storage.local.set({ editorTheme: themeSelect.value });  // an open editor updates at once
+});

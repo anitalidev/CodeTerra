@@ -4,16 +4,16 @@ const COPY_LABEL = "Copy";
 const COPIED_LABEL = "Copied!";
 const FAILED_LABEL = "Failed";
 const LABEL_RESET_MS = 1500;
-const BUTTON_INSET_PX = 4;
 
-function createCopyButton(statement) {
+const OPEN_EDITOR_LABEL = "Open Editor View";
+const CLOSE_EDITOR_LABEL = "Close Editor View";
+const TOOLBAR_GAP_PX = 6;
+
+function createToolbarButton(label) {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = COPY_LABEL;
-    button.className = "codeterra-copy-button";
+    button.textContent = label;
     Object.assign(button.style, {
-        position: "absolute",
-        zIndex: "1000",
         padding: "2px 8px",
         font: "12px sans-serif",
         color: "#666",
@@ -22,6 +22,12 @@ function createCopyButton(statement) {
         borderRadius: "2px",
         cursor: "pointer",
     });
+    return button;
+}
+
+function createCopyButton(statement) {
+    const button = createToolbarButton(COPY_LABEL);
+    button.className = "codeterra-copy-button";
 
     button.addEventListener("click", async () => {
         try {
@@ -36,29 +42,38 @@ function createCopyButton(statement) {
     return button;
 }
 
-// The button lives on <body>, not inside the statement: Codeforces watches the statement
-// and shows a "recently changed" notice if anything is added to it.
-function positionButton(button, statement) {
-    const rect = statement.getBoundingClientRect();
-    button.style.top = `${rect.top + window.scrollY + BUTTON_INSET_PX}px`;
-    button.style.right = `${document.documentElement.clientWidth - rect.right - window.scrollX + BUTTON_INSET_PX}px`;
+function createEditorButton() {
+    const button = createToolbarButton(OPEN_EDITOR_LABEL);
+    button.className = "codeterra-editor-button";
+
+    button.addEventListener("click", () => {
+        const isOpen = toggleEditorPanel();  // from editor-panel.js
+        button.textContent = isOpen ? CLOSE_EDITOR_LABEL : OPEN_EDITOR_LABEL;
+    });
+    return button;
 }
 
-function addCopyButton() {
+// The buttons sit just above the problem, in the page flow, so they can't get squeezed over the
+// title. They are placed before the whole problem block, not inside the statement: Codeforces
+// watches the statement and shows a "recently changed" notice if anything is added to it.
+function addToolbar() {
     const statement = document.querySelector(".problem-statement");
-    if (!statement || document.querySelector(".codeterra-copy-button")) {
+    if (!statement || document.querySelector(".codeterra-toolbar")) {
         return;
     }
-    const button = createCopyButton(statement);
-    document.body.append(button);
-
-    const reposition = () => positionButton(button, statement);
-    reposition();
-    window.addEventListener("resize", reposition);
-    new ResizeObserver(reposition).observe(statement);  // layout shifts, e.g. math finishing rendering
+    const toolbar = document.createElement("div");
+    toolbar.className = "codeterra-toolbar";
+    Object.assign(toolbar.style, {
+        display: "flex",
+        justifyContent: "flex-end",
+        gap: `${TOOLBAR_GAP_PX}px`,
+        margin: "0 0 6px",
+    });
+    toolbar.append(createEditorButton(), createCopyButton(statement));
+    (document.querySelector(".problemindexholder") ?? statement).before(toolbar);
 }
 
-addCopyButton();
+addToolbar();
 
 // Lets the background script ask for the problem text.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
