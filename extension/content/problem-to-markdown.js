@@ -65,6 +65,30 @@ function texToMarkdown(script) {
     return type.includes("mode=display") ? `$$${tex}$$` : `$${tex}$`;
 }
 
+const TEX_SYMBOLS = { "\u2264": "\\le", "\u2265": "\\ge", "\u2260": "\\ne", "\u00d7": "\\times", "\u00b7": "\\cdot" };
+
+// Math that Codeforces wrote as HTML (older problems) rather than TeX for MathJax.
+function htmlMathToTex(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent
+            .replace(/\u00a0/g, " ")
+            .replace(/\s+/g, " ")
+            .replace(/[\u2264\u2265\u2260\u00d7\u00b7]/g, (symbol) => `${TEX_SYMBOLS[symbol]} `);
+    }
+    if (!isElement(node)) {
+        return "";
+    }
+    const inner = Array.from(node.childNodes).map(htmlMathToTex).join("");
+    const tag = node.tagName.toLowerCase();
+    if (tag === "sub") {
+        return `_{${inner.trim()}}`;
+    }
+    if (tag === "sup") {
+        return `^{${inner.trim()}}`;
+    }
+    return inner;
+}
+
 function childrenInlineMd(element) {
     return Array.from(element.childNodes).map(inlineMd).join("");
 }
@@ -87,6 +111,10 @@ function inlineMd(node) {
     }
     if (tag === "img") {
         return `![${node.alt}](${node.src})`;
+    }
+
+    if (node.classList.contains("tex-span")) {
+        return `$${htmlMathToTex(node).trim()}$`;
     }
 
     const inner = childrenInlineMd(node);

@@ -59,3 +59,72 @@ function addCopyButton() {
 }
 
 addCopyButton();
+
+// Lets the background script ask for the problem text.
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type !== "GET_PROBLEM_TEXT") {
+        return;
+    }
+    try {
+        sendResponse({ ok: true, text: getProblemText() });
+    } catch (error) {
+        sendResponse({ ok: false, error: error.message });
+    }
+});
+
+// --- Extra tags -----------------------------------------------------------------------
+
+const EXTRA_TAG_BACKGROUND = "#fff6b3";
+const EXTRA_TAG_CLASS = "codeterra-extra-tag";
+
+// The <div> that holds Codeforces' own tag boxes (and the "No tag edit access" line).
+function findTagList() {
+    const tagBox = document.querySelector(".tag-box");
+    return tagBox ? tagBox.closest(".roundbox").parentElement : null;
+}
+
+// Same markup as a Codeforces tag, with a yellow background instead of grey.
+function createExtraTag(name) {
+    const wrapper = document.createElement("div");
+    wrapper.className = `roundbox borderTopRound borderBottomRound ${EXTRA_TAG_CLASS}`;
+    wrapper.style.cssText = `margin:2px; padding:0 3px 2px 3px; background-color:${EXTRA_TAG_BACKGROUND}; float:left;`;
+
+    const label = document.createElement("span");
+    label.className = "tag-box";
+    label.style.fontSize = "1.2rem";
+    label.title = "Suggested by CodeTerra";
+    label.textContent = name;
+
+    wrapper.append(label);
+    return wrapper;
+}
+
+function showExtraTags(tags) {
+    const tagList = findTagList();
+    if (!tagList) {
+        console.warn("CodeTerra: could not find the problem tags box");
+        return;
+    }
+    tagList.querySelectorAll(`.${EXTRA_TAG_CLASS}`).forEach((tag) => tag.remove());
+
+    // Put ours after Codeforces' tags, before the "clear: both" line underneath them.
+    const clearLine = Array.from(tagList.children).find((child) => child.style.clear === "both");
+    for (const name of tags) {
+        tagList.insertBefore(createExtraTag(name), clearLine ?? null);
+    }
+}
+
+async function addExtraTags() {
+    try {
+        const response = await chrome.runtime.sendMessage({ type: "LABEL_PROBLEM_EXTRA_TAGS" });
+        if (!response?.ok) {
+            console.error("CodeTerra: could not get extra tags:", response?.error);
+            return;
+        }
+        showExtraTags(response.tags);
+    } catch (error) {
+        console.error("CodeTerra: could not get extra tags", error);
+    }
+}
+
+addExtraTags();
