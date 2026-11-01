@@ -74,6 +74,7 @@ function addToolbar() {
 }
 
 addToolbar();
+syncEditorWithHash();  // a link ending in #editor-view opens the editor view (editor-panel.js)
 
 // Lets the background script ask for the problem text.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

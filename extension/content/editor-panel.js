@@ -12,6 +12,7 @@ const MIN_PAGE_WIDTH_PX = 320;
 const HANDLE_WIDTH_PX = 6;
 const DIVIDER_WIDTH_PX = 1;  // the editor frame's left border
 
+const EDITOR_HASH = "#editor-view";  // in the URL while the editor view is open
 const SPLIT_CLASS = "codeterra-split";
 const DRAGGING_CLASS = "codeterra-dragging";
 const SPLIT_STYLE_ID = "codeterra-split-styles";
@@ -147,6 +148,31 @@ function setPageShrunk(shrunk) {
     document.documentElement.classList.toggle(SPLIT_CLASS, shrunk);
 }
 
+// Puts the editor view in the page address (or takes it out) without adding a history entry.
+function setEditorHash(open) {
+    const base = window.location.pathname + window.location.search;
+    if (open) {
+        history.replaceState(history.state, "", base + EDITOR_HASH);
+    } else if (window.location.hash === EDITOR_HASH) {
+        history.replaceState(history.state, "", base);
+    }
+}
+
+function isEditorOpen() {
+    const frame = document.querySelector(".codeterra-editor");
+    return Boolean(frame) && frame.style.display !== "none";
+}
+
+// Makes the editor match the address: open for #editor-view, closed otherwise. It clicks the
+// button, as the X does, so the label stays right. Used on page load and when the hash changes.
+function syncEditorWithHash() {
+    if ((window.location.hash === EDITOR_HASH) !== isEditorOpen()) {
+        document.querySelector(".codeterra-editor-button")?.click();
+    }
+}
+
+window.addEventListener("hashchange", syncEditorWithHash);
+
 function openEditorPanel() {
     let frame = document.querySelector(".codeterra-editor");
     if (!frame) {
@@ -164,12 +190,14 @@ function openEditorPanel() {
     frame.style.display = "block";
     document.querySelector(".codeterra-editor-handle").style.display = "block";
     setPageShrunk(true);
+    setEditorHash(true);
 }
 
 function closeEditorPanel() {
     document.querySelector(".codeterra-editor").style.display = "none";
     document.querySelector(".codeterra-editor-handle").style.display = "none";
     setPageShrunk(false);
+    setEditorHash(false);
 }
 
 // Shows the editor, or hides it if it is showing. Returns true when it is now open.
