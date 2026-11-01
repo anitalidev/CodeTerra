@@ -3,4 +3,4 @@ fastapi
 uvicorn
 openai
 python-dotenv
-aiosqlite
+asyncpg

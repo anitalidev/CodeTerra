@@ -1,6 +1,7 @@
 from enum import Enum
 
 from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
 
@@ -95,4 +96,5 @@ class Problem(Base):
 
     contestID: Mapped[int] = mapped_column(primary_key=True)
     index: Mapped[str] = mapped_column(primary_key=True)
-    extraTags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # JSONB on Postgres (Neon); the plain JSON fallback keeps other databases working in tests
+    extraTags: Mapped[list[str]] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), default=list)
