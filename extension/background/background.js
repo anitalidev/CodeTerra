@@ -2,6 +2,7 @@ const DEV_BACKEND_URL = "http://localhost:8000";
 // Your Railway address, like "https://codeterra-production.up.railway.app" (no trailing slash).
 const PRODUCTION_BACKEND_URL = "https://codeterra-production.up.railway.app";
 const KEEP_ALIVE_MS = 20000;
+const API_KEY_PROBLEM = "API_KEY_PROBLEM";
 // /contest/2104/problem/A  or  /problemset/problem/380/C
 const PROBLEM_URL_PATTERN = /\/(?:contest\/(\d+)\/problem\/|problemset\/problem\/(\d+)\/)([^/?#]+)/;
 
@@ -33,16 +34,25 @@ async function labelProblem(tab) {
     const index = match[3];
 
     const backendUrl = await getBackendUrl();
+    const { openaiKey } = await chrome.storage.local.get({ openaiKey: "" });
+    const headers = { "Content-Type": "application/json" };
+    if (openaiKey) {
+        headers["X-OpenAI-Key"] = openaiKey;
+    }
     console.log("CodeTerra: calling backend", backendUrl, contestID, index);
     const response = await fetch(`${backendUrl}/problems/${contestID}/${encodeURIComponent(index)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ problemText: reply.text }),
     });
     console.log("CodeTerra: backend replied", response.status);
     if (!response.ok) {
         const body = await response.json().catch(() => null);
-        throw new Error(typeof body?.detail === "string" ? body.detail : `Backend returned ${response.status}`);
+        const error = new Error(typeof body?.detail === "string" ? body.detail : `Backend returned ${response.status}`);
+        if (response.status === 401) {
+            error.code = API_KEY_PROBLEM;  // missing or rejected OpenAI key
+        }
+        throw error;
     }
     return (await response.json()).extraTags;
 }
@@ -63,7 +73,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ ok: true, tags: await labelProblem(tab) });
         } catch (error) {
             console.error("CodeTerra: labeling failed", error);
-            sendResponse({ ok: false, error: error.message });
+            sendResponse({ ok: false, error: error.message, code: error.code });
         } finally {
             clearInterval(keepAlive);
         }

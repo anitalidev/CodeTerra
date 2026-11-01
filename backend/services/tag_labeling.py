@@ -1,6 +1,8 @@
 from pathlib import Path
 from string import Template
 
+from openai import AsyncOpenAI
+
 from models.problem import ExtraTag
 from services.openai_service import send_conversation_prompt, start_conversation
 
@@ -33,7 +35,7 @@ def parse_tags(reply: str) -> list[ExtraTag]:
     return [ExtraTag(name) for name in names]
 
 
-async def label_problem(problem_text: str) -> list[ExtraTag]:
+async def label_problem(client: AsyncOpenAI, problem_text: str) -> list[ExtraTag]:
     """Ask the model for tags for a problem, retrying with feedback on bad replies.
 
     Raises:
@@ -45,7 +47,7 @@ async def label_problem(problem_text: str) -> list[ExtraTag]:
         max_tags=MAX_TAGS,
         problem_text=problem_text,
     )
-    reply, response_id = await start_conversation(prompt)
+    reply, response_id = await start_conversation(client, prompt)
 
     for attempt in range(MAX_ATTEMPTS):
         try:
@@ -56,6 +58,7 @@ async def label_problem(problem_text: str) -> list[ExtraTag]:
                     f"No valid tags after {MAX_ATTEMPTS} attempts: {error}"
                 ) from error
             reply, response_id = await send_conversation_prompt(
+                client,
                 f"{error} Reply again with only valid tags, comma-separated, "
                 "with no spaces after the commas.",
                 response_id,
