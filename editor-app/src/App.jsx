@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 
 import { LANGUAGES, STARTER_CODE } from "./languages";
+import TestCases from "./TestCases";
 import { loadState, saveState, watchState } from "./storage";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, THEMES } from "./themes";
 
@@ -106,6 +107,7 @@ export default function App() {
                     />
                 )}
             </div>
+            <TestCases problem={problem} />
         </div>
     );
 }

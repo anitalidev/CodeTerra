@@ -17,9 +17,13 @@ const DRAGGING_CLASS = "codeterra-dragging";
 const SPLIT_STYLE_ID = "codeterra-split-styles";
 const EDITOR_PROBLEM_PATTERN = /\/(?:contest\/(\d+)\/problem\/|problemset\/problem\/(\d+)\/)([^/?#]+)/;
 
-function createEditorFrame() {
+function problemKey() {
     const match = EDITOR_PROBLEM_PATTERN.exec(window.location.pathname);
-    const problem = match ? `${match[1] ?? match[2]}/${match[3]}` : "";
+    return match ? `${match[1] ?? match[2]}/${match[3]}` : "";
+}
+
+function createEditorFrame() {
+    const problem = problemKey();
 
     const frame = document.createElement("iframe");
     frame.className = "codeterra-editor";
@@ -155,6 +159,8 @@ function openEditorPanel() {
             }
         });
     }
+    // The editor lives in its own page and can't read this one, so pass the examples through storage.
+    chrome.storage.local.set({ [`examples:${problemKey()}`]: extractExamples() });  // from problem-text.js
     frame.style.display = "block";
     document.querySelector(".codeterra-editor-handle").style.display = "block";
     setPageShrunk(true);

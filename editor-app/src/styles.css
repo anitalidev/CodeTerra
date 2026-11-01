@@ -100,3 +100,195 @@ body {
     color: #fff;
     background: rgba(255, 255, 255, 0.12);
 }
+
+/* Test cases, under the editor */
+.tests {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #b9b9b9;
+    background: #f6f6f6;
+}
+
+.tests.collapsed {
+    height: auto;
+}
+
+.tests-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px;
+    background: #e1e1e1;
+}
+
+.tests-toggle {
+    padding: 2px 4px;
+    font: bold 13px verdana, arial, sans-serif;
+    color: #3b5998;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.chevron {
+    display: inline-block;
+    width: 1em;
+}
+
+.tests-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+}
+
+.tab {
+    padding: 2px 8px;
+    font: 12px verdana, arial, sans-serif;
+    color: #333;
+    background: #fff;
+    border: 1px solid #b9b9b9;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.tab.active {
+    color: #fff;
+    background: #3b5998;
+    border-color: #3b5998;
+}
+
+.tab.add {
+    color: #3b5998;
+    border-style: dashed;
+}
+
+.tests-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    flex: 1;
+    min-height: 0;
+    padding: 8px 10px;
+}
+
+.case-field {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.case-label {
+    margin-bottom: 3px;
+    font-size: 12px;
+    color: #555;
+}
+
+.case-field textarea {
+    flex: 1;
+    min-height: 0;
+    padding: 6px 8px;
+    font: 13px/1.4 Menlo, Consolas, monospace;
+    color: #222;
+    background: #fff;
+    border: 1px solid #b9b9b9;
+    border-radius: 3px;
+    resize: none;
+}
+
+.case-field textarea[readonly] {
+    background: #f0f0f0;
+    color: #444;
+}
+
+.case-actions {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: #666;
+}
+
+.case-actions button {
+    padding: 2px 8px;
+    font: inherit;
+    color: #a33;
+    background: #fff;
+    border: 1px solid #b9b9b9;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.panel.dark .tests {
+    background: #252526;
+    border-top-color: #3c3c3c;
+}
+
+.panel.dark .tests-bar {
+    background: #2b2b2b;
+}
+
+.panel.dark .tests-toggle {
+    color: #9db7e8;
+}
+
+.panel.dark .tab {
+    color: #ddd;
+    background: #3a3a3a;
+    border-color: #555;
+}
+
+.panel.dark .tab.active {
+    color: #fff;
+    background: #3b5998;
+    border-color: #3b5998;
+}
+
+.panel.dark .tab.add {
+    color: #9db7e8;
+}
+
+.panel.dark .case-label,
+.panel.dark .case-actions,
+.panel.dark .empty {
+    color: #aaa;
+}
+
+.panel.dark .case-field textarea {
+    color: #ddd;
+    background: #1e1e1e;
+    border-color: #555;
+}
+
+.panel.dark .case-field textarea[readonly] {
+    background: #2a2a2a;
+    color: #bbb;
+}
+
+.panel.dark .case-actions button {
+    color: #e08a8a;
+    background: #3a3a3a;
+    border-color: #555;
+}
+
+/* The strip on the panel's top edge that resizes it */
+.tests-resize {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 6px;
+    z-index: 5;
+    cursor: row-resize;
+}
+
+.tests-resize:hover {
+    background: rgba(59, 89, 152, 0.25);
+}
