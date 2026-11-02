@@ -26,6 +26,10 @@ class RunnerAuthError(RunnerError):
     """The runner rejected the credentials, or none were given."""
 
 
+class RunnerRateLimitError(RunnerError):
+    """The runner refused because of a rate limit or used-up credits."""
+
+
 class CodeRunner(ABC):
     def __init__(self, credentials: Mapping[str, str]) -> None:
         self.credentials = credentials
@@ -37,5 +41,6 @@ class CodeRunner(ABC):
         Raises:
             UnknownLanguage: the runner does not offer request.language_id.
             RunnerAuthError: the credentials were rejected.
+            RunnerRateLimitError: rate limited, or out of credits.
             RunnerError: any other failure talking to the runner.
         """

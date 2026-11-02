@@ -11,7 +11,7 @@ from database import Base, engine
 from openai import APIError, AuthenticationError
 from pydantic import ValidationError
 from routers import problems, runners
-from services.code_runner import RunnerAuthError, RunnerError
+from services.code_runner import RunnerAuthError, RunnerError, RunnerRateLimitError
 from services.language_repository import UnknownLanguage
 from services.tag_labeling import TagLabelingError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -48,6 +48,11 @@ async def unknown_language_handler(request: Request, exc: UnknownLanguage):
 @app.exception_handler(RunnerAuthError)
 async def runner_auth_error_handler(request: Request, exc: RunnerAuthError):
     return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+@app.exception_handler(RunnerRateLimitError)
+async def runner_rate_limit_handler(request: Request, exc: RunnerRateLimitError):
+    return JSONResponse(status_code=429, content={"detail": str(exc)})
 
 
 @app.exception_handler(RunnerError)

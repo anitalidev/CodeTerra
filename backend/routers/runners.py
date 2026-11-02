@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from schemas.code_submission import CodeSubmission, RunResult, Runners
+from schemas.code_submission import CodeSubmission, RanTestCase, RunResult, Runners, RanTestCase
+from services.code_runner import ExecutionRequest
+from services.code_runner import ExecutionRequest
 from services.language_repository import LanguageOption
 from services.runner_registry import registry
 
@@ -28,8 +30,24 @@ async def get_options():
     ]
 
 
-@router.post("/run", response_model=RunResult)
+@router.post("/run", response_model=RunResult,
+             description="Run the submitted code once for each test case and return what it printed")
 async def run_code(
     submission: CodeSubmission
 ):
-    pass
+    runner = registry.create(submission.runner, submission.credentials)
+
+    # One at a time: the free runner plans are tight on rate limits.
+    ran = []
+    for case in submission.testCases:
+        result = await runner.run(ExecutionRequest(
+            language_id=submission.language,
+            source_code=submission.submittedCode,
+            stdin=case.input,
+        ))
+        ran.append(RanTestCase(
+            input=case.input,
+            output=result.output,
+            expectedOutput=case.expectedOutput,
+        ))
+    return RunResult(testCases=ran)

@@ -8,6 +8,7 @@ from services.code_runner import (
     ExecutionResult,
     RunnerAuthError,
     RunnerError,
+    RunnerRateLimitError,
 )
 from services.language_repository import LanguageEntry, UnknownLanguage
 
@@ -101,19 +102,26 @@ class JDoodleRunner(CodeRunner):
         except httpx.HTTPError as error:
             raise RunnerError("Could not reach JDoodle.") from error
 
-        if response.status_code in (401, 403):
-            raise RunnerAuthError("JDoodle rejected your credentials. Check them in the CodeTerra popup.")
-        if response.status_code == 429:
-            raise RunnerError("JDoodle is rate limiting you, or your daily credits are used up.")
-        if response.status_code != 200:
-            raise RunnerError(f"JDoodle returned an error ({response.status_code}).")
+        self._raise_for_status(response.status_code)
 
         data = response.json()
+        # JDoodle can also report a failure inside a 200 reply, as a "statusCode" in the body.
+        self._raise_for_status(data.get("statusCode", 200))
         return ExecutionResult(
             output=data.get("output") or "",
             time_s=_to_float(data.get("cpuTime")),
             memory_kb=_to_int(data.get("memory")),
         )
+
+
+    @staticmethod
+    def _raise_for_status(status: int) -> None:
+        if status in (401, 403):
+            raise RunnerAuthError("JDoodle rejected your credentials. Check them in the CodeTerra popup.")
+        if status == 429:
+            raise RunnerRateLimitError("JDoodle is rate limiting you, or your daily credits are used up.")
+        if status != 200:
+            raise RunnerError(f"JDoodle returned an error ({status}).")
 
 
 # JDoodle sends time and memory as strings, and null when it has no figure.

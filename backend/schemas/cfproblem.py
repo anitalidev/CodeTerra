@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from models.problem import ExtraTag
 
-
 class CFProblem(BaseModel):
     """ Represents a problem as it is in Codeforces """
     # Codeforces JSON uses camelCase ("contestId"); our code uses contestID.

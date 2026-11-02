@@ -86,6 +86,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
 });
 
+// Runs the editor's code against every test case. The credentials for the chosen runner come
+// from storage here, so the editor page never has to pass them around.
+async function runCode({ runner, language, submittedCode, testCases }) {
+    const { runnerCredentials } = await chrome.storage.local.get({ runnerCredentials: {} });
+    const response = await fetch(`${await getBackendUrl()}/runners/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            runner,
+            language,
+            submittedCode,
+            testCases,
+            credentials: runnerCredentials[runner] ?? {},
+        }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+        return {
+            ok: false,
+            status: response.status,
+            error: typeof body?.detail === "string" ? body.detail : `Backend returned ${response.status}`,
+        };
+    }
+    return { ok: true, testCases: body.testCases };
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type !== "RUN_CODE") {
+        return;
+    }
+    // Several runs in a row can outlast the idle timeout, same as labeling (see below).
+    const keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), KEEP_ALIVE_MS);
+    runCode(message)
+        .catch((error) => ({ ok: false, error: `Could not reach the CodeTerra backend (${error.message}).` }))
+        .then(sendResponse)
+        .finally(() => clearInterval(keepAlive));
+    return true;
+});
+
 // Not async: Chrome ignores a Promise returned from this listener, so the async work runs
 // inside and the listener returns true to keep the channel open for sendResponse.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
