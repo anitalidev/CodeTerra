@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { missingCredentials, runCode } from "./runners";
 import { loadState, saveState, watchState } from "./storage";
 
 const SAVE_DELAY_MS = 400;
@@ -13,13 +14,23 @@ function clampHeight(heightPx) {
     return Math.min(Math.max(heightPx, MIN_HEIGHT_PX), window.innerHeight - MIN_EDITOR_HEIGHT_PX);
 }
 
+// Judges ignore trailing spaces and blank lines at the end, so the comparison does too.
+function normalize(text) {
+    return text
+        .replace(/\r\n/g, "\n")
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .join("\n")
+        .trimEnd();
+}
+
 function newCase() {
     return { id: crypto.randomUUID(), input: "", output: "" };
 }
 
 // Example cases come from the problem page and can't be edited. Custom cases are the user's own
 // and are saved per problem.
-export default function TestCases({ problem }) {
+export default function TestCases({ problem, runner, language, code }) {
     const examplesKey = `examples:${problem}`;
     const customKey = `tests:${problem}`;
 
@@ -29,6 +40,9 @@ export default function TestCases({ problem }) {
     const [selectedId, setSelectedId] = useState(null);
     const [open, setOpen] = useState(true);
     const [height, setHeight] = useState(DEFAULT_HEIGHT_PX);
+    const [running, setRunning] = useState(false);
+    const [results, setResults] = useState({});  // case id -> what the code printed
+    const [runError, setRunError] = useState("");
 
     useEffect(() => {
         loadState(HEIGHT_STORAGE_KEY).then((saved) => saved && setHeight(clampHeight(saved)));
@@ -61,6 +75,49 @@ export default function TestCases({ problem }) {
         ...custom.map((entry, index) => ({ ...entry, label: `Case ${index + 1}`, isExample: false })),
     ];
     const selected = cases.find((entry) => entry.id === selectedId) ?? cases[0];
+
+    const runAll = async () => {
+        setRunError("");
+        if (!runner) {
+            setRunError("No code runner is available. Check that the CodeTerra backend is reachable.");
+            return;
+        }
+        if (cases.length === 0) {
+            setRunError('Add a test case first (use "+ Add").');
+            return;
+        }
+        const missing = await missingCredentials(runner);
+        if (missing.length > 0) {
+            setRunError(
+                `Add your ${runner.label} ${missing.join(" and ")} in the CodeTerra popup (the extension icon) to run code.`
+            );
+            return;
+        }
+
+        setRunning(true);
+        setOpen(true);
+        const reply = await runCode({
+            runner: runner.id,
+            language,
+            submittedCode: code,
+            testCases: cases.map((entry) => ({ input: entry.input, expectedOutput: entry.output })),
+        });
+        setRunning(false);
+
+        if (!reply?.ok) {
+            setRunError(reply?.error ?? "The run failed.");
+            return;
+        }
+        setResults(Object.fromEntries(cases.map((entry, index) => [entry.id, reply.testCases[index].output])));
+    };
+
+    // pass / fail once a case has been run; undefined before, or with no expected output to compare to
+    const verdict = (entry) => {
+        if (!(entry.id in results) || entry.output.trim() === "") {
+            return undefined;
+        }
+        return normalize(results[entry.id]) === normalize(entry.output) ? "pass" : "fail";
+    };
 
     const addCase = () => {
         const entry = newCase();
@@ -125,22 +182,35 @@ export default function TestCases({ problem }) {
                             type="button"
                             role="tab"
                             aria-selected={entry.id === selected?.id}
-                            className={`tab${entry.id === selected?.id ? " active" : ""}${entry.isExample ? "" : " custom"}`}
+                            className={`tab${entry.id === selected?.id ? " active" : ""}${entry.isExample ? "" : " custom"}${
+                                verdict(entry) ? ` ${verdict(entry)}` : ""
+                            }`}
                             onClick={() => {
                                 setSelectedId(entry.id);
                                 setOpen(true);
                             }}
                         >
                             {entry.label}
+                            {verdict(entry) === "pass" && " ✓"}
+                            {verdict(entry) === "fail" && " ✗"}
                         </button>
                     ))}
                     <button type="button" className="tab add" onClick={addCase} title="Add a test case">
                         + Add
                     </button>
                 </div>
+                <span className="spacer" />
+                <button type="button" className="run" onClick={runAll} disabled={running}>
+                    {running ? "Running…" : "▶ Run"}
+                </button>
             </div>
+            {runError && (
+                <div className="run-error" role="alert">
+                    {runError}
+                </div>
+            )}
             {open && (
-                <div className="tests-body">
+                <div className={`tests-body${selected && selected.id in results ? " has-output" : ""}`}>
                     {selected ? (
                         <>
                             <label className="case-field">
@@ -161,6 +231,16 @@ export default function TestCases({ problem }) {
                                     spellCheck={false}
                                 />
                             </label>
+                            {selected.id in results && (
+                                <label className="case-field your-output">
+                                    <span className="case-label">
+                                        Your output
+                                        {verdict(selected) === "pass" && <b className="pass"> · Passed</b>}
+                                        {verdict(selected) === "fail" && <b className="fail"> · Wrong answer</b>}
+                                    </span>
+                                    <textarea value={results[selected.id]} readOnly spellCheck={false} />
+                                </label>
+                            )}
                             <div className="case-actions">
                                 {selected.isExample ? (
                                     <span className="case-note">Examples come from the problem and can't be edited.</span>

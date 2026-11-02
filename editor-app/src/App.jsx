@@ -151,7 +151,7 @@ export default function App() {
                     />
                 )}
             </div>
-            <TestCases problem={problem} />
+            <TestCases problem={problem} runner={runner} language={activeId} code={code} />
         </div>
     );
 }
