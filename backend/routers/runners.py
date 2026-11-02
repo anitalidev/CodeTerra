@@ -47,6 +47,7 @@ async def run_code(
         ))
         ran.append(RanTestCase(
             input=case.input,
+            error=result.error,
             output=result.output,
             expectedOutput=case.expectedOutput,
         ))

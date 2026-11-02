@@ -41,7 +41,7 @@ export default function TestCases({ problem, runner, language, code }) {
     const [open, setOpen] = useState(true);
     const [height, setHeight] = useState(DEFAULT_HEIGHT_PX);
     const [running, setRunning] = useState(false);
-    const [results, setResults] = useState({});  // case id -> what the code printed
+    const [results, setResults] = useState({});  // case id -> { output, error }; error means output is an error message
     const [runError, setRunError] = useState("");
 
     useEffect(() => {
@@ -108,15 +108,30 @@ export default function TestCases({ problem, runner, language, code }) {
             setRunError(reply?.error ?? "The run failed.");
             return;
         }
-        setResults(Object.fromEntries(cases.map((entry, index) => [entry.id, reply.testCases[index].output])));
+        setResults(
+            Object.fromEntries(
+                cases.map((entry, index) => [
+                    entry.id,
+                    { output: reply.testCases[index].output, error: reply.testCases[index].error },
+                ])
+            )
+        );
     };
 
-    // pass / fail once a case has been run; undefined before, or with no expected output to compare to
+    // "error" if the code didn't run to completion, else pass / fail once a case has been run;
+    // undefined before a run, or with no expected output to compare to
     const verdict = (entry) => {
-        if (!(entry.id in results) || entry.output.trim() === "") {
+        const result = results[entry.id];
+        if (!result) {
             return undefined;
         }
-        return normalize(results[entry.id]) === normalize(entry.output) ? "pass" : "fail";
+        if (result.error) {
+            return "error";
+        }
+        if (entry.output.trim() === "") {
+            return undefined;
+        }
+        return normalize(result.output) === normalize(entry.output) ? "pass" : "fail";
     };
 
     const addCase = () => {
@@ -193,6 +208,7 @@ export default function TestCases({ problem, runner, language, code }) {
                             {entry.label}
                             {verdict(entry) === "pass" && " ✓"}
                             {verdict(entry) === "fail" && " ✗"}
+                            {verdict(entry) === "error" && " ⚠"}
                         </button>
                     ))}
                     <button type="button" className="tab add" onClick={addCase} title="Add a test case">
@@ -234,11 +250,12 @@ export default function TestCases({ problem, runner, language, code }) {
                             {selected.id in results && (
                                 <label className="case-field your-output">
                                     <span className="case-label">
-                                        Your output
+                                        {results[selected.id].error ? "Error" : "Your output"}
+                                        {verdict(selected) === "error" && <b className="fail"> · Run failed</b>}
                                         {verdict(selected) === "pass" && <b className="pass"> · Passed</b>}
                                         {verdict(selected) === "fail" && <b className="fail"> · Wrong answer</b>}
                                     </span>
-                                    <textarea value={results[selected.id]} readOnly spellCheck={false} />
+                                    <textarea value={results[selected.id].output} readOnly spellCheck={false} />
                                 </label>
                             )}
                             <div className="case-actions">

@@ -305,6 +305,11 @@ body {
     flex: 1;
 }
 
+.tests-bar .run,
+.tests-toggle {
+    white-space: nowrap;
+}
+
 .tests-bar .run {
     padding: 2px 10px;
     font: bold 12px verdana, arial, sans-serif;
@@ -334,6 +339,10 @@ body {
 
 .tab.fail {
     border-color: #c62828;
+}
+
+.tab.error {
+    border-color: #ef6c00;
 }
 
 .case-label .pass {

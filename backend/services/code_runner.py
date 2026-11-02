@@ -14,6 +14,7 @@ class ExecutionResult(BaseModel):
     # Runners differ in how much they report: JDoodle merges stdout, stderr and compile
     # errors into one text, so that is all this carries for now.
     output: str
+    error: bool = False  # True when the program didn't run to completion and output is the error text
     time_s: float | None = None
     memory_kb: int | None = None
 

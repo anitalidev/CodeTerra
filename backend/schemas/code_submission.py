@@ -11,6 +11,7 @@ class TestCase(BaseModel):
 
 class RanTestCase(BaseModel):
     input: str
+    error: bool # if true, then output is error message. Otherwise it is output
     output: str
     expectedOutput: str
 
