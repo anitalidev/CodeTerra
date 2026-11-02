@@ -19,6 +19,7 @@ class CodeSubmission(BaseModel):
     language: str
     submittedCode : str
     testCases : list[TestCase]
+    credentials : dict[str, str]
 
 class RunResult(BaseModel):
     testCases : list[RanTestCase]

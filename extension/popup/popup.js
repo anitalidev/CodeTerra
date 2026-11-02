@@ -33,22 +33,22 @@ themeSelect.addEventListener("change", () => {
     chrome.storage.local.set({ editorTheme: themeSelect.value });  // an open editor updates at once
 });
 
-// --- Code runner and its credentials ----------------------------------------------------
-// The backend says which runners exist and which credentials each needs (GET /runners/options),
-// so this section has no runner-specific code.
+// --- Code runner credentials -------------------------------------------------------------
+// One group of boxes per runner, so a user can keep credentials for all of them. Which runner is
+// used is chosen in the editor. The backend says which runners exist and which credentials each
+// needs (GET /runners/options), so this section has no runner-specific code.
 
-const runnerSelect = document.getElementById("runner");
 const credentialsBox = document.getElementById("runner-credentials");
 const runnerStatus = document.getElementById("runner-status");
-const RUNNER_HINT = "Credentials are stored only in this browser and sent to the CodeTerra backend when you run code.";
+const RUNNER_HINT = "Credentials are stored only in this browser and sent to the CodeTerra backend when you run code. Pick the runner in the editor.";
 
-let runnerOptions = [];
+const ACRONYMS = new Set(["id", "url", "api"]);
 
-// "client_id" -> "Client ID"
+// "client_id" -> "Client ID", "api_key" -> "API Key"
 function credentialLabel(field) {
     return field
         .split("_")
-        .map((word) => (word === "id" ? "ID" : word.charAt(0).toUpperCase() + word.slice(1)))
+        .map((word) => (ACRONYMS.has(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1)))
         .join(" ");
 }
 
@@ -59,49 +59,40 @@ function showRunnerStatus(text, resetAfterMs) {
     }
 }
 
-function selectedRunner() {
-    return runnerOptions.find((runner) => runner.id === runnerSelect.value);
-}
-
-async function renderCredentials() {
+function renderRunnerCredentials(runners, savedByRunner) {
     credentialsBox.replaceChildren();
-    const runner = selectedRunner();
-    if (!runner) {
-        return;
+    for (const runner of runners) {
+        const group = document.createElement("section");
+        group.className = "runner-group";
+        group.dataset.runner = runner.id;
+
+        const title = document.createElement("div");
+        title.className = "runner-title";
+        title.textContent = `${runner.label} credentials`;
+        group.append(title);
+
+        const saved = savedByRunner[runner.id] ?? {};
+        for (const field of runner.credential_fields) {
+            const label = document.createElement("label");
+            label.className = "field";
+
+            const name = document.createElement("span");
+            name.className = "setting-label";
+            name.textContent = credentialLabel(field);
+
+            const input = document.createElement("input");
+            input.type = "password";
+            input.className = "text-input";
+            input.autocomplete = "off";
+            input.spellcheck = false;
+            input.dataset.field = field;
+            input.value = saved[field] ?? "";
+
+            label.append(name, input);
+            group.append(label);
+        }
+        credentialsBox.append(group);
     }
-    const { runnerCredentials } = await chrome.storage.local.get({ runnerCredentials: {} });
-    const saved = runnerCredentials[runner.id] ?? {};
-
-    for (const field of runner.credential_fields) {
-        const label = document.createElement("label");
-        label.className = "field";
-
-        const name = document.createElement("span");
-        name.className = "setting-label";
-        name.textContent = `${runner.label} ${credentialLabel(field)}`;
-
-        const input = document.createElement("input");
-        input.type = "password";
-        input.className = "text-input";
-        input.autocomplete = "off";
-        input.spellcheck = false;
-        input.dataset.field = field;
-        input.value = saved[field] ?? "";
-
-        label.append(name, input);
-        credentialsBox.append(label);
-    }
-}
-
-async function saveCredentials() {
-    const runner = selectedRunner();
-    const values = {};
-    for (const input of credentialsBox.querySelectorAll("input")) {
-        values[input.dataset.field] = input.value.trim();
-    }
-    const { runnerCredentials } = await chrome.storage.local.get({ runnerCredentials: {} });
-    await chrome.storage.local.set({ runnerCredentials: { ...runnerCredentials, [runner.id]: values } });
-    showRunnerStatus("Saved.", 2000);
 }
 
 async function loadRunners() {
@@ -109,31 +100,24 @@ async function loadRunners() {
     const reply = await chrome.runtime.sendMessage({ type: "GET_RUNNER_OPTIONS" });
 
     if (!reply?.ok) {
-        runnerOptions = [];
-        runnerSelect.replaceChildren();
-        runnerSelect.disabled = true;
         credentialsBox.replaceChildren();
         showRunnerStatus(`Could not load the code runners (${reply?.error ?? "no reply"}). Is the backend running?`);
         return;
     }
-
-    runnerOptions = reply.options;
-    runnerSelect.disabled = false;
-    runnerSelect.replaceChildren(
-        ...runnerOptions.map((runner) => new Option(runner.label, runner.id))
-    );
-    const { runner: chosen } = await chrome.storage.local.get({ runner: "" });
-    runnerSelect.value = runnerOptions.some((runner) => runner.id === chosen) ? chosen : runnerOptions[0]?.id ?? "";
-
-    await renderCredentials();
+    const { runnerCredentials } = await chrome.storage.local.get({ runnerCredentials: {} });
+    renderRunnerCredentials(reply.options, runnerCredentials);
     showRunnerStatus(reply.stale ? "Backend unreachable; showing the last known runners." : RUNNER_HINT);
 }
 
-runnerSelect.addEventListener("change", async () => {
-    await chrome.storage.local.set({ runner: runnerSelect.value });  // an open editor updates at once
-    renderCredentials();
+credentialsBox.addEventListener("change", async (event) => {
+    const group = event.target.closest(".runner-group");
+    const values = {};
+    for (const input of group.querySelectorAll("input")) {
+        values[input.dataset.field] = input.value.trim();
+    }
+    const { runnerCredentials } = await chrome.storage.local.get({ runnerCredentials: {} });
+    await chrome.storage.local.set({ runnerCredentials: { ...runnerCredentials, [group.dataset.runner]: values } });
+    showRunnerStatus("Saved.", 2000);
 });
-
-credentialsBox.addEventListener("change", saveCredentials);
 
 loadRunners();

@@ -92,6 +92,12 @@ export default function App() {
     const current = languages.find((entry) => entry.id === activeId);
     const code = codeByLanguage[activeId] ?? starterCode(activeId);
 
+    // Shared with the popup's storage, so the choice is remembered across problems and sessions.
+    const chooseRunner = (id) => {
+        setRunnerId(id);
+        saveState(RUNNER_KEY, id);
+    };
+
     const resetCode = () => {
         if (window.confirm(`Reset your ${current.label} code to the starter template?`)) {
             setCodeByLanguage((previous) => ({ ...previous, [activeId]: starterCode(activeId) }));
@@ -103,6 +109,19 @@ export default function App() {
             <div className="toolbar">
                 <span className="title">CodeTerra Editor</span>
                 <span className="spacer" />
+                {runnerOptions.length > 0 && (
+                    <select
+                        value={runner.id}
+                        onChange={(event) => chooseRunner(event.target.value)}
+                        aria-label="Code runner"
+                    >
+                        {runnerOptions.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                                {entry.label}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 <select
                     value={activeId}
                     onChange={(event) => setLanguage(event.target.value)}
