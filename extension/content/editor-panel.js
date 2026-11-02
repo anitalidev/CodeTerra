@@ -235,6 +235,7 @@ function openEditorPanel() {
             }
         });
     }
+    removeStaleProblemData(problemKey()).catch((error) => console.error("CodeTerra: cleanup failed", error));  // problem-data.js
     // The editor lives in its own page and can't read this one, so pass the examples through storage.
     chrome.storage.local.set({
         [`examples:${problemKey()}`]: extractExamples(),  // from problem-text.js

@@ -222,6 +222,11 @@ body {
     cursor: pointer;
 }
 
+/* A tab with an X needs less room on its right: 8px padding + the X's own 2px was 10px */
+.tab.custom {
+    padding-right: 3px;
+}
+
 .tab-close {
     display: flex;
     align-items: center;
