@@ -107,10 +107,14 @@ class JDoodleRunner(CodeRunner):
         data = response.json()
         # JDoodle can also report a failure inside a 200 reply, as a "statusCode" in the body.
         self._raise_for_status(data.get("statusCode", 200))
+        output = data.get("output") or ""
+        time_s = _to_float(data.get("cpuTime"))
+        memory_kb = _to_int(data.get("memory"))
         return ExecutionResult(
-            output=data.get("output") or "",
-            time_s=_to_float(data.get("cpuTime")),
-            memory_kb=_to_int(data.get("memory")),
+            output=output,
+            error=_is_error(data, output, time_s, memory_kb),
+            time_s=time_s,
+            memory_kb=memory_kb,
         )
 
 
@@ -122,6 +126,19 @@ class JDoodleRunner(CodeRunner):
             raise RunnerRateLimitError("JDoodle is rate limiting you, or your daily credits are used up.")
         if status != 200:
             raise RunnerError(f"JDoodle returned an error ({status}).")
+
+
+# JDoodle has no status field: errors arrive as plain text in "output". Its reply does carry
+# isExecutionSuccess, which is false for compile errors, timeouts, crashes and non-zero exit codes
+# (checked against real replies for C++17), and true for runs that finished cleanly, even with no
+# output. The fallbacks cover a reply without that flag.
+def _is_error(data: dict, output: str, time_s: float | None, memory_kb: int | None) -> bool:
+    success = data.get("isExecutionSuccess")
+    if success is not None:
+        return not success
+    if data.get("isCompiled") is False:
+        return True
+    return time_s is None and memory_kb is None  # nothing ran, so there are no figures
 
 
 # JDoodle sends time and memory as strings, and null when it has no figure.

@@ -20,8 +20,8 @@ body {
 .toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 3px 10px;
     background: #e1e1e1;
     border-bottom: 1px solid #b9b9b9;
 }
@@ -29,6 +29,7 @@ body {
 .title {
     font-weight: bold;
     color: #3b5998;
+    white-space: nowrap;
 }
 
 .spacer {
@@ -37,7 +38,8 @@ body {
 
 .toolbar select,
 .toolbar button {
-    padding: 2px 8px;
+    padding: 0 6px;
+    line-height: 1.5;
     font: inherit;
     color: #222;
     background: #fff;
@@ -57,8 +59,8 @@ body {
 
 .toolbar button.close {
     margin-left: 4px;
-    padding: 0 8px;
-    font-size: 22px;
+    padding: 0 6px;
+    font-size: 18px;
     line-height: 1;
     color: #666;
     background: none;
@@ -118,12 +120,12 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 4px 10px;
+    padding: 2px 10px;
     background: #e1e1e1;
 }
 
 .tests-toggle {
-    padding: 2px 4px;
+    padding: 0 4px;
     font: bold 13px verdana, arial, sans-serif;
     color: #3b5998;
     background: none;
@@ -136,11 +138,63 @@ body {
     width: 1em;
 }
 
+/* One row that scrolls sideways when there are many cases */
 .tests-tabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 4px;
     min-width: 0;
+    padding-bottom: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;  /* no visible bar; the mouse wheel and trackpad still scroll the row */
+}
+
+.tests-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab.add:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tests-tabs .tab,
+.tests-tabrow > .tab {
+    flex: none;
+    white-space: nowrap;
+}
+
+/* The case tabs, on their own row under the "Test cases" bar */
+.tests-tabrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 2px;
+    background: #e1e1e1;
+    border-top: 1px solid #d0d0d0;
+}
+
+.tests-tabrow .tests-tabs {
+    flex: 1;
+}
+
+.panel.dark .tests-tabrow {
+    background: #2b2b2b;
+    border-top-color: #3c3c3c;
+}
+
+.ignore-case {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #444;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.panel.dark .ignore-case {
+    color: #ccc;
 }
 
 .tab {
@@ -153,10 +207,62 @@ body {
     cursor: pointer;
 }
 
+/* A tab is a group: the button that selects the case, and for your own cases an X that deletes it */
+.tab {
+    display: inline-flex;
+    align-items: center;
+}
+
+.tab-select {
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* A tab with an X needs less room on its right: 8px padding + the X's own 2px was 10px */
+.tab.custom {
+    padding-right: 3px;
+}
+
+.tab-close {
+    display: flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 2px;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.tab-close svg {
+    width: 9px;
+    height: 9px;
+    fill: none;
+    stroke: #000;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+}
+
+.tab-close:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.panel.dark .tab-close svg {
+    stroke: #e0e0e0;
+}
+
+.panel.dark .tab-close:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
 .tab.active {
-    color: #fff;
-    background: #3b5998;
-    border-color: #3b5998;
+    color: #222;
+    background: #cfcfcf;
+    border-color: #a8a8a8;
 }
 
 .tab.add {
@@ -254,8 +360,8 @@ body {
 
 .panel.dark .tab.active {
     color: #fff;
-    background: #3b5998;
-    border-color: #3b5998;
+    background: #555;
+    border-color: #777;
 }
 
 .panel.dark .tab.add {
@@ -300,13 +406,76 @@ body {
     background: rgba(59, 89, 152, 0.25);
 }
 
+/* The bar: title on the left, the overall verdict in the middle, run controls on the right */
+.tests-side,
+.tests-actions {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+}
+
+.tests-actions {
+    justify-content: flex-end;
+}
+
+.overall {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font: bold 13px verdana, arial, sans-serif;
+    white-space: nowrap;
+}
+
+.overall .verdict-icon {
+    margin-left: 0;
+}
+
+.overall.pass {
+    color: #2e7d32;
+}
+
+.overall.fail {
+    color: #c62828;
+}
+
+.overall.error {
+    color: #ef6c00;
+}
+
+.overall.none {
+    color: #777;
+}
+
+.panel.dark .overall.pass {
+    color: #7bc67e;
+}
+
+.panel.dark .overall.fail {
+    color: #ef8a8a;
+}
+
+.panel.dark .overall.error {
+    color: #ffb74d;
+}
+
+.panel.dark .overall.none {
+    color: #aaa;
+}
+
 /* Running the code */
 .tests-bar .spacer {
     flex: 1;
 }
 
+.tests-bar .run,
+.tests-toggle {
+    white-space: nowrap;
+}
+
 .tests-bar .run {
-    padding: 2px 10px;
+    padding: 0 10px;
+    line-height: 1.5;
     font: bold 12px verdana, arial, sans-serif;
     color: #fff;
     background: #2e7d32;
@@ -334,6 +503,29 @@ body {
 
 .tab.fail {
     border-color: #c62828;
+}
+
+.tab.error {
+    border-color: #ef6c00;
+}
+
+.tab.none {
+    border-color: #9e9e9e;
+}
+
+.verdict-icon {
+    width: 14px;
+    height: 14px;
+    margin-left: 6px;
+    vertical-align: -2px;
+}
+
+.case-label .none {
+    color: #777;
+}
+
+.panel.dark .case-label .none {
+    color: #aaa;
 }
 
 .case-label .pass {
