@@ -8,6 +8,17 @@ const HEIGHT_STORAGE_KEY = "testsHeight";
 const DEFAULT_HEIGHT_PX = 230;
 const MIN_HEIGHT_PX = 120;
 const MIN_EDITOR_HEIGHT_PX = 160;
+// A textarea that grows to show all of its text, so the whole panel scrolls instead of each box.
+function AutoTextarea(props) {
+    const ref = useRef(null);
+    useEffect(() => {
+        const box = ref.current;
+        box.style.height = "auto";
+        box.style.height = `${box.scrollHeight + 2}px`;
+    });
+    return <textarea ref={ref} rows={1} {...props} />;
+}
+
 const MAX_CASES = 10;  // examples included; every case in a run costs the runner a request
 
 // The panel is docked to the bottom of the window, so its height follows from the pointer's y.
@@ -33,6 +44,21 @@ const VERDICT_ICONS = {
     none: { fill: "#9e9e9e", label: "No expected output to compare", glyph: <path d="M5.5 11.5v-7l5 7v-7" /> },
 };
 
+// How a run failed, by the status the runner reports. "ok" is not in here: the code ran.
+const ERROR_KIND_LABELS = {
+    compileErr: "Compile error",
+    runtimeErr: "Runtime error",
+    timeErr: "Time limit exceeded",
+    memoryErr: "Memory limit exceeded",
+};
+
+const CASE_LABELS = {
+    pass: "Accepted",
+    fail: "Wrong answer",
+    error: "Run failed",
+    none: "No expected output",
+};
+
 const OVERALL_LABELS = {
     pass: "Accepted",
     fail: "Wrong answer",
@@ -51,6 +77,28 @@ function VerdictIcon({ kind }) {
             </g>
         </svg>
     );
+}
+
+// The slowest and the largest run among the given results, as the judges report them; "" when the runner gave no figures.
+function usageText(shown) {
+    const times = shown.map((result) => result.timeSeconds).filter((value) => value != null);
+    const memories = shown.map((result) => result.memoryKb).filter((value) => value != null);
+    const parts = [];
+    if (times.length > 0) {
+        const seconds = Math.max(...times);
+        parts.push(seconds >= 1 ? `${seconds.toFixed(2)} s` : `${Math.round(seconds * 1000)} ms`);
+    }
+    if (memories.length > 0) {
+        const kb = Math.max(...memories);
+        parts.push(kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`);
+    }
+    return parts.join(" / ");
+}
+
+// JDoodle starts its error messages with blank lines; drop them so the message begins at the top.
+// Normal output is left exactly as the program printed it.
+function tidyOutput({ output, status }) {
+    return status !== "ok" ? output.replace(/^(?:[ \t]*\r?\n)+/, "") : output;
 }
 
 function newCase() {
@@ -72,7 +120,7 @@ export default function TestCases({ problem, runner, language, code }) {
     const [open, setOpen] = useState(true);
     const [height, setHeight] = useState(DEFAULT_HEIGHT_PX);
     const [running, setRunning] = useState(false);
-    const [results, setResults] = useState({});  // case id -> { output, error }; error means output is an error message
+    const [results, setResults] = useState({});  // case id -> { output, status }; status other than "ok" means output is an error message
     const [runError, setRunError] = useState("");
     const [caseHint, setCaseHint] = useState(false);  // the statement says any letter case is accepted
     const [ignoreCaseChoice, setIgnoreCaseChoice] = useState(undefined);  // the user's own choice, if any
@@ -156,7 +204,12 @@ export default function TestCases({ problem, runner, language, code }) {
             Object.fromEntries(
                 cases.map((entry, index) => [
                     entry.id,
-                    { output: reply.testCases[index].output, error: reply.testCases[index].error },
+                    {
+                        output: tidyOutput(reply.testCases[index]),
+                        status: reply.testCases[index].status,
+                        timeSeconds: reply.testCases[index].timeSeconds,
+                        memoryKb: reply.testCases[index].memoryKb,
+                    },
                 ])
             )
         );
@@ -176,7 +229,7 @@ export default function TestCases({ problem, runner, language, code }) {
         if (!result) {
             return undefined;
         }
-        if (result.error) {
+        if (result.status !== "ok") {
             return "error";
         }
         if (entry.output.trim() === "") {
@@ -198,6 +251,10 @@ export default function TestCases({ problem, runner, language, code }) {
         }
         return kinds.length > 0 ? "none" : undefined;
     })();
+
+    // When every failed case failed the same way, say how; otherwise just "Run failed".
+    const errorKinds = new Set(cases.filter((entry) => verdict(entry) === "error").map((entry) => results[entry.id].status));
+    const errorKindLabel = errorKinds.size === 1 ? ERROR_KIND_LABELS[[...errorKinds][0]] : undefined;
 
     const atLimit = cases.length >= MAX_CASES;
 
@@ -268,7 +325,7 @@ export default function TestCases({ problem, runner, language, code }) {
                 {overall && !running && (
                     <div className={`overall ${overall}`} role="status">
                         <VerdictIcon kind={overall} />
-                        {OVERALL_LABELS[overall]}
+                        {overall === "error" ? (errorKindLabel ?? OVERALL_LABELS.error) : OVERALL_LABELS[overall]}
                     </div>
                 )}
                 <div className="tests-actions">
@@ -357,38 +414,51 @@ export default function TestCases({ problem, runner, language, code }) {
                 <div className={`tests-body${selected && selected.id in results ? " has-output" : ""}`}>
                     {selected ? (
                         <>
+                            {verdict(selected) && (
+                                <div className={`overall case-result ${verdict(selected)}`} role="status">
+                                    <VerdictIcon kind={verdict(selected)} />
+                                    {verdict(selected) === "error"
+                                        ? (ERROR_KIND_LABELS[results[selected.id].status] ?? CASE_LABELS.error)
+                                        : CASE_LABELS[verdict(selected)]}
+                                    {usageText([results[selected.id]]) && (
+                                        <span className="usage">{usageText([results[selected.id]])}</span>
+                                    )}
+                                </div>
+                            )}
                             <label className="case-field">
                                 <span className="case-label">Input</span>
-                                <textarea
+                                <AutoTextarea
                                     value={selected.input}
                                     readOnly={selected.isExample}
                                     onChange={(event) => updateCase("input", event.target.value)}
                                     spellCheck={false}
                                 />
                             </label>
-                            <label className="case-field">
-                                <span className="case-label">Expected output</span>
-                                <textarea
-                                    value={selected.output}
-                                    readOnly={selected.isExample}
-                                    onChange={(event) => updateCase("output", event.target.value)}
-                                    spellCheck={false}
-                                />
-                            </label>
                             {selected.id in results && (
                                 <label className="case-field your-output">
                                     <span className="case-label">
-                                        {results[selected.id].error ? "Error" : "Your output"}
-                                        {verdict(selected) === "error" && <b className="fail"> · Run failed</b>}
+                                        {results[selected.id].status !== "ok" ? "Error" : "Your output"}
+                                        {verdict(selected) === "error" && (
+                                            <b className="fail"> · {ERROR_KIND_LABELS[results[selected.id].status] ?? CASE_LABELS.error}</b>
+                                        )}
                                         {verdict(selected) === "none" && (
                                             <b className="none"> · No expected output to compare</b>
                                         )}
                                         {verdict(selected) === "pass" && <b className="pass"> · Passed</b>}
                                         {verdict(selected) === "fail" && <b className="fail"> · Wrong answer</b>}
                                     </span>
-                                    <textarea value={results[selected.id].output} readOnly spellCheck={false} />
+                                    <AutoTextarea value={results[selected.id].output} readOnly spellCheck={false} />
                                 </label>
                             )}
+                            <label className="case-field">
+                                <span className="case-label">Expected output{!selected.isExample && " (optional)"}</span>
+                                <AutoTextarea
+                                    value={selected.output}
+                                    readOnly={selected.isExample}
+                                    onChange={(event) => updateCase("output", event.target.value)}
+                                    spellCheck={false}
+                                />
+                            </label>
                             <div className="case-actions">
                                 {selected.isExample ? (
                                     <span className="case-note">Examples come from the problem and can't be edited.</span>

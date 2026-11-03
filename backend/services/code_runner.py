@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -14,7 +15,8 @@ class ExecutionResult(BaseModel):
     # Runners differ in how much they report: JDoodle merges stdout, stderr and compile
     # errors into one text, so that is all this carries for now.
     output: str
-    error: bool = False  # True when the program didn't run to completion and output is the error text
+    # "ok" when the program ran to completion; otherwise output is the error text.
+    status: Literal["ok", "compileErr", "runtimeErr"] = "ok"
     time_s: float | None = None
     memory_kb: int | None = None
 
