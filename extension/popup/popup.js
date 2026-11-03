@@ -62,6 +62,9 @@ function showRunnerStatus(text, resetAfterMs) {
 function renderRunnerCredentials(runners, savedByRunner) {
     credentialsBox.replaceChildren();
     for (const runner of runners) {
+        if (runner.credential_fields.length === 0) {
+            continue;  // nothing to enter, e.g. Codeforces
+        }
         const group = document.createElement("section");
         group.className = "runner-group";
         group.dataset.runner = runner.id;

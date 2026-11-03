@@ -23,6 +23,7 @@
         "content/problem-to-markdown.js",
         "content/problem-text.js",
         "content/problem-data.js",
+        "content/codeforces-runner.js",
         "content/editor-panel.js",
         "content/problem-additions-script.js"
       ],
@@ -43,7 +44,8 @@
     "default_popup": "popup/popup.html"
   },
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background/background.js",
+    "type": "module"
   },
   "host_permissions": [
     "https://codeforces.com/*",
