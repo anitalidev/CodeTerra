@@ -112,7 +112,7 @@ class JDoodleRunner(CodeRunner):
         memory_kb = _to_int(data.get("memory"))
         return ExecutionResult(
             output=output,
-            error=_is_error(data, output, time_s, memory_kb),
+            status=_status(data, output, time_s, memory_kb),
             time_s=time_s,
             memory_kb=memory_kb,
         )
@@ -126,6 +126,13 @@ class JDoodleRunner(CodeRunner):
             raise RunnerRateLimitError("JDoodle is rate limiting you, or your daily credits are used up.")
         if status != 200:
             raise RunnerError(f"JDoodle returned an error ({status}).")
+
+
+# isCompiled false means the code never built; otherwise the run either finished cleanly or didn't.
+def _status(data: dict, output: str, time_s: float | None, memory_kb: int | None) -> str:
+    if data.get("isCompiled") is False:
+        return "compileErr"
+    return "runtimeErr" if _is_error(data, output, time_s, memory_kb) else "ok"
 
 
 # JDoodle has no status field: errors arrive as plain text in "output". Its reply does carry

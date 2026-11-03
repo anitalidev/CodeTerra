@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 class Runners(str, Enum):
@@ -11,9 +12,11 @@ class TestCase(BaseModel):
 
 class RanTestCase(BaseModel):
     input: str
-    error: bool # if true, then output is error message. Otherwise it is output
+    status: Literal["ok", "compileErr", "runtimeErr"]  # if not "ok", then output is the error message. Otherwise it is output
     output: str
     expectedOutput: str
+    timeSeconds: float | None = None  # None when the runner gave no figure
+    memoryKb: int | None = None
 
 class CodeSubmission(BaseModel):
     runner: Runners
