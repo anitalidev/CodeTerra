@@ -31,6 +31,22 @@
         "https://codeforces.com/contest/*/problem/*",
         "https://codeforces.com/problemset/problem/*/*"
       ]
+    },
+    {
+      "js": [
+        "content/analytics/analytics-util.js",
+        "content/analytics/analytics-api.js",
+        "content/analytics/analytics-analysis.js",
+        "content/analytics/analytics-charts.js",
+        "content/analytics/analytics-export.js",
+        "content/analytics/analytics-styles.js",
+        "content/analytics/analytics-views.js",
+        "content/analytics/analytics-panel.js"
+      ],
+      "matches": [
+        "https://codeforces.com/profile/*"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "action": {
