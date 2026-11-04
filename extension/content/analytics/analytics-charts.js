@@ -1,7 +1,7 @@
 // Tooltip, SVG charts, the tag heatmap and sortable tables. Each draws into an element it is given.
 (() => {
   'use strict';
-  const { esc, fmt, pct, MONTHS, monthKey, monthLabel, niceStep } = window.CTA;
+  const { esc, fmt, rt, pct, MONTHS, monthKey, monthLabel, niceStep } = window.CTA;
 
   // ---------------------------------------------------------------- tooltip
   const tip = {
@@ -126,7 +126,7 @@
     const step = niceStep(hi - lo, 5) < 100 ? 100 : niceStep(hi - lo, 5);
     for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
       S('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: 'cta-gridline' }, svg);
-      T(svg, m.l - 6, y(v) + 4, fmt(v), 'cta-axis', { 'text-anchor': 'end' });
+      T(svg, m.l - 6, y(v) + 4, rt(v), 'cta-axis', { 'text-anchor': 'end' });
     }
     // x ticks: years, or quarters for short spans
     const spanMonths = k1 - k0 + 1;
@@ -178,8 +178,8 @@
       const rr = ratingAt(endOfMonth);
       if (rr) { hR.setAttribute('cx', mx); hR.setAttribute('cy', y(rr.r)); hR.setAttribute('visibility', 'visible'); } else hR.setAttribute('visibility', 'hidden');
       tip.show(`<b>${monthLabel(mm.k)}</b><br>
-        <span class="k" style="background:var(--series-1)"></span>Avg solved rating: <b>${mm.avg != null ? fmt(mm.avg) : '–'}</b> <span class="m">(${mm.ratings.length} rated, max ${mm.max != null ? fmt(mm.max) : '–'})</span><br>
-        <span class="k" style="background:var(--series-2)"></span>Contest rating: <b>${rr ? fmt(rr.r) : '–'}</b><br>
+        <span class="k" style="background:var(--series-1)"></span>Avg solved rating: <b>${mm.avg != null ? rt(mm.avg) : '–'}</b> <span class="m">(${mm.ratings.length} rated, max ${mm.max != null ? rt(mm.max) : '–'})</span><br>
+        <span class="k" style="background:var(--series-2)"></span>Contest rating: <b>${rr ? rt(rr.r) : '–'}</b><br>
         <span class="m">${mm.solved} solved · ${mm.subs} submissions</span>`, ev);
     });
     overlay.addEventListener('mouseleave', () => { tip.hide(); [cross, hA, hR].forEach((n) => n.setAttribute('visibility', 'hidden')); });
@@ -205,7 +205,7 @@
     const step = niceStep(hi - lo, Math.max(2, Math.floor(rateW / 90)));
     for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
       S('line', { x1: rx(v), x2: rx(v), y1: headH, y2: H, class: 'cta-gridline' }, svg);
-      T(svg, rx(v), H + 12, fmt(v), 'cta-axis', { 'text-anchor': 'middle' });
+      T(svg, rx(v), H + 12, rt(v), 'cta-axis', { 'text-anchor': 'middle' });
     }
     svg.setAttribute('height', H + 16);
     svg.setAttribute('viewBox', `0 0 ${W} ${H + 16}`);
@@ -226,8 +226,8 @@
         S('circle', { cx: rx(t.avg), cy, r: 5, fill: 'var(--series-1-strong)', stroke: '#fff', 'stroke-width': 2 }, g);
       }
       bindTip(g, () => `<b>${esc(t.tag)}</b><br>Solved <b>${t.solved}</b> of ${t.attempted} attempted (${pct(t.success)})<br>
-        Avg rating <b>${fmt(t.avg)}</b> <span class="m">(${t.ratings.length} rated)</span><br>
-        Range ${fmt(t.min)} – ${fmt(t.max)}<br>First-try AC ${pct(t.firstTryRate)}`);
+        Avg rating <b>${rt(t.avg)}</b> <span class="m">(${t.ratings.length} rated)</span><br>
+        Range ${rt(t.min)} – ${rt(t.max)}<br>First-try AC ${pct(t.firstTryRate)}`);
     });
   }
 

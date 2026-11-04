@@ -2,10 +2,13 @@
 // `S` is the panel's shared state: { A (analysis), plan, HANDLE, showAllTags, suggestions, problemset }.
 (() => {
   'use strict';
-  const { esc, fmt, pct, avg, quantile, dateStr, VERDICTS, PTYPES, MONTHS, monthLabel, problemUrl } = window.CTA;
+  const { esc, fmt, rt, pct, avg, quantile, dateStr, VERDICTS, PTYPES, MONTHS, monthLabel, ratingColor, problemUrl } = window.CTA;
   const { bindTip, hbarChart, columnChart, progressChart, tagChart, heatmap, legend, sortableTable, problemLink } = window.CTA;
   const { loadProblemset } = window.CTA;
 
+  // A rating shown in its Codeforces rank colour; "–" when there isn't one.
+  const rv = (n) => (n == null || Number.isNaN(n) ? '–' : `<span style="color:${ratingColor(n)}">${rt(n)}</span>`);
+  const pill = (r) => (r ? `<span class="cta-pill" style="color:${ratingColor(r)}">${rt(r)}</span>` : '–');
   const stat = (label, value, sub) => `<div class="cta-stat"><div class="l">${label}</div><div class="v">${value}</div>${sub ? `<div class="d">${sub}</div>` : ''}</div>`;
   const chip = (label, value, title) => `<span class="cta-chip"${title ? ` title="${esc(title)}"` : ''}><b>${value}</b>${label}</span>`;
   const meter = (v) => (v == null ? '–' : `<span class="cta-bar" style="width:48px"><i style="width:${Math.round(v * 100)}%"></i></span>${pct(v)}`);
@@ -20,12 +23,12 @@
       return `
         <div class="cta-hero">
           ${stat('Solved', fmt(A.totalSolved), `${fmt(A.unsolved.length)} tried, not solved`)}
-          ${stat('Average rating', fmt(A.overallAvg), `median ${fmt(quantile(A.ratedSorted, 0.5))} · ${A.rated.length} rated`)}
-          ${stat('Contest rating', A.contest ? fmt(A.contest.current) : '–', A.contest ? `max ${fmt(A.contest.max)} · ${A.contest.count} contests` : 'unrated')}
+          ${stat('Average rating', rv(A.overallAvg), `median ${rt(quantile(A.ratedSorted, 0.5))} · ${A.rated.length} rated`)}
+          ${stat('Contest rating', A.contest ? rv(A.contest.current) : '–', A.contest ? `max ${rt(A.contest.max)} · ${A.contest.count} contests` : 'unrated')}
           ${stat('Longest streak', `${fmt(longest)} days`, `current ${A.current} ${A.current === 1 ? 'day' : 'days'}`)}
         </div>
         <div class="cta-chips">
-          ${chip('hardest solved', h ? fmt(h.r) : '–', h ? `${h.c || ''}${h.i} ${h.n}` : '')}
+          ${chip('hardest solved', h ? rv(h.r) : '–', h ? `${h.c || ''}${h.i} ${h.n}` : '')}
           ${chip('first-try AC', pct(A.firstTryRate), 'solved with no wrong attempts')}
           ${chip('submissions', fmt(A.subs.length), `${pct(A.acceptance)} accepted`)}
           ${chip('active days', fmt(activeDays), `since ${dateStr(A.subs[0].t)}`)}
@@ -48,8 +51,8 @@
             <div class="cta-practice">
               <div class="cta-card cta-band">
                 <div class="k">Target rating band</div>
-                <div class="big">${lo}–${hi}</div>
-                <p>From the 75th percentile of your last ${Math.min(40, A.rated.length)} rated solves (${plan.comfort})${A.contest ? ` and your contest rating (${fmt(A.contest.current)})` : ''}. Hard enough to stretch, close enough to finish.</p>
+                <div class="big">${rv(lo)}–${rv(hi)}</div>
+                <p>From the 75th percentile of your last ${Math.min(40, A.rated.length)} rated solves (${plan.comfort})${A.contest ? ` and your contest rating (${rt(A.contest.current)})` : ''}. Hard enough to stretch, close enough to finish.</p>
               </div>
               <div class="cta-card">
                 <div class="k">Tags to work on</div>
@@ -75,7 +78,7 @@
             if (!upsolve.length) { el.innerHTML = '<div class="cta-empty">Nothing left to upsolve.</div>'; return; }
             sortableTable(el, [
               { k: 'name', label: 'Problem', left: true, render: (p) => `${problemLink(p)}<div class="cta-tags">${esc(p.tags.join(', '))}</div>` },
-              { k: 'r', label: 'Rating', render: (p) => `<span class="cta-pill">${fmt(p.r)}</span>` },
+              { k: 'r', label: 'Rating', render: (p) => pill(p.r) },
               { k: 'tries', label: 'Attempts' },
               { k: 'lastTry', label: 'Last tried', render: (p) => dateStr(p.lastTry) },
             ], upsolve.map((p) => ({ ...p, name: p.n })), { sortKey: 'lastTry' });
@@ -87,7 +90,7 @@
             if (!S.suggestions) return;
             if (!S.suggestions.length) { sEl.innerHTML = '<div class="cta-empty">No matching unsolved problems found.</div>'; return; }
             sEl.innerHTML = `<div class="cta-scroll"><table class="cta-table"><thead><tr><th>Problem</th><th>Rating</th><th>Solved by</th></tr></thead><tbody>
-              ${S.suggestions.map((p) => `<tr><td class="l">${problemLink(p)}<div class="cta-tags">${esc(p.tags.join(', '))}</div></td><td><span class="cta-pill">${fmt(p.r)}</span></td><td>${fmt(p.solvedCount)}</td></tr>`).join('')}
+              ${S.suggestions.map((p) => `<tr><td class="l">${problemLink(p)}<div class="cta-tags">${esc(p.tags.join(', '))}</div></td><td>${pill(p.r)}</td><td>${fmt(p.solvedCount)}</td></tr>`).join('')}
             </tbody></table></div>`;
           };
           draw();
@@ -117,7 +120,7 @@
           const shown = A.tags.filter((t) => t.solved > 0);
           if (!shown.length) return '<div class="cta-empty">No solved problems yet.</div>';
           return `
-            <p class="cta-sub">Problems solved by tag and the rating range of those problems. Dot: average rating, with a line from easiest to hardest. Grey rule: your overall average (${fmt(A.overallAvg)}).</p>
+            <p class="cta-sub">Problems solved by tag and the rating range of those problems. Dot: average rating, with a line from easiest to hardest. Grey rule: your overall average (${rt(A.overallAvg)}).</p>
             <div class="cta-chart" data-c="tags"></div>
             ${shown.length > 12 ? `<button class="cta-btn" style="margin-top:10px" data-act="alltags"></button>` : ''}
             <details class="cta-more" data-lazy="heat"><summary>Tag × difficulty</summary>
@@ -153,8 +156,8 @@
             { k: 'attempted', label: 'Attempted' },
             { k: 'success', label: 'Success', render: (r) => meter(r.success) },
             { k: 'firstTryRate', label: 'First-try', render: (r) => meter(r.firstTryRate) },
-            { k: 'avg', label: 'Avg rating', render: (r) => fmt(r.avg) },
-            { k: 'max', label: 'Max rating', render: (r) => fmt(r.max) },
+            { k: 'avg', label: 'Avg rating', render: (r) => rv(r.avg) },
+            { k: 'max', label: 'Max rating', render: (r) => rv(r.max) },
           ], A.tags, { sortKey: 'solved' }));
           return draw;
         },
@@ -173,11 +176,11 @@
           const delta = lastYear.length && before.length ? avg(lastYear) - avg(before) : null;
           return `
             <div class="cta-chips">
-              ${chip('avg rating, last 12 months', fmt(avg(lastYear)), delta == null ? '' : `${delta >= 0 ? 'Up' : 'Down'} ${fmt(Math.abs(delta))} vs. earlier`)}
+              ${chip('avg rating, last 12 months', rv(avg(lastYear)), delta == null ? '' : `${delta >= 0 ? 'Up' : 'Down'} ${rt(Math.abs(delta))} vs. earlier`)}
               ${chip('solved, last 12 months', fmt(A.solved.filter((p) => p.solvedAt >= yearAgo).length))}
               ${c ? chip('best contest rank', fmt(c.bestRank), c.bestRankContest.n) : ''}
-              ${c && c.maxGain.r > c.maxGain.o ? chip('biggest rating gain', `+${fmt(c.maxGain.r - c.maxGain.o)}`, c.maxGain.n) : ''}
-              ${c && c.maxDrop.r < c.maxDrop.o ? chip('biggest rating drop', `−${fmt(c.maxDrop.o - c.maxDrop.r)}`, c.maxDrop.n) : ''}
+              ${c && c.maxGain.r > c.maxGain.o ? chip('biggest rating gain', `+${rt(c.maxGain.r - c.maxGain.o)}`, c.maxGain.n) : ''}
+              ${c && c.maxDrop.r < c.maxDrop.o ? chip('biggest rating drop', `−${rt(c.maxDrop.o - c.maxDrop.r)}`, c.maxDrop.n) : ''}
             </div>
             ${legend([['Monthly average', 'var(--series-1)'], ['Contest rating', 'var(--series-2)'], ['Individual solve', 'rgba(59,89,152,.35)', true]])}
             <div class="cta-chart" data-c="line"></div>`;
@@ -201,7 +204,7 @@
             columnChart(body.querySelector('[data-c="monthly"]'), ms.map((m) => ({
               label: m.k % every === 0 ? (every >= 12 ? String(Math.floor(m.k / 12)) : `${MONTHS[m.k % 12]} ${String(Math.floor(m.k / 12)).slice(2)}`) : null,
               value: m.solved,
-              tip: `<b>${monthLabel(m.k)}</b><br>${m.solved} solved · ${m.subs} submissions${m.avg != null ? `<br>avg rating ${fmt(m.avg)}` : ''}`,
+              tip: `<b>${monthLabel(m.k)}</b><br>${m.solved} solved · ${m.subs} submissions${m.avg != null ? `<br>avg rating ${rt(m.avg)}` : ''}`,
             })), { height: 180, capLabels: ms.length <= 24 });
           };
         },
@@ -225,7 +228,7 @@
           if (!A.solved.length) return null;
           lazy(body, 'solved', (el) => sortableTable(el, [
             { k: 'name', label: 'Problem', left: true, render: (p) => `${problemLink(p)}${p.tags.length ? `<div class="cta-tags">${esc(p.tags.join(', '))}</div>` : ''}` },
-            { k: 'r', label: 'Rating', render: (p) => (p.r ? `<span class="cta-pill">${fmt(p.r)}</span>` : '–') },
+            { k: 'r', label: 'Rating', render: (p) => pill(p.r) },
             { k: 'tries', label: 'Attempts', render: (p) => `${p.tries}${p.firstTry ? '' : ` <span class="cta-tags" style="display:inline">(${p.wrongBefore} wrong)</span>`}` },
             { k: 'solvedAt', label: 'Solved', render: (p) => dateStr(p.solvedAt) },
           ], A.solved.map((p) => ({ ...p, name: p.n })), { sortKey: 'solvedAt' }));
@@ -236,7 +239,7 @@
             if (A.rated.length) {
               for (let r = A.ratedSorted[0]; r <= A.ratedSorted[A.ratedSorted.length - 1]; r += 100) {
                 const n = hist.get(r) || 0;
-                items.push({ label: r, value: n, tip: `<b>${r}</b><br>${n} solved` });
+                items.push({ label: r, value: n, color: ratingColor(r), tip: `<b>${r}</b><br>${n} solved` });
               }
             }
             const histEl = body.querySelector('[data-c="hist"]');
@@ -330,7 +333,7 @@
             { k: 'name', label: 'Problem', left: true, render: (p) => `${problemLink(p)}${p.tags.length ? `<div class="cta-tags">${esc(p.tags.join(', '))}</div>` : ''}` },
             { k: 'where', label: 'Submitted in', render: (p) => esc(p.where) },
             { k: 'status', label: 'Status', render: (p) => (p.solvedAt != null ? 'Solved' : 'Not solved') },
-            { k: 'r', label: 'Rating', render: (p) => (p.r ? `<span class="cta-pill">${fmt(p.r)}</span>` : '–') },
+            { k: 'r', label: 'Rating', render: (p) => pill(p.r) },
             { k: 'when', label: 'Date', render: (p) => dateStr(p.when) },
           ], A.untraced.map((p) => ({
             ...p, name: p.n, when: p.solvedAt || p.lastTry, status: p.solvedAt != null ? 1 : 0,
@@ -358,7 +361,7 @@
       const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
       return {
         title: `Codeforces tag summary: ${HANDLE}`,
-        subtitle: `${fmt(A.solved.length)} problems solved · average rating ${fmt(A.overallAvg)} · exported ${today}`,
+        subtitle: `${fmt(A.solved.length)} problems solved · average rating ${rt(A.overallAvg)} · exported ${today}`,
         columns: [
           { label: 'Tag', align: 'left', width: 4200 },
           { label: '# Solved', align: 'right', width: 1500 },

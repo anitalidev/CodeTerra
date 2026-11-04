@@ -1,7 +1,7 @@
 // Turns raw submissions and contest history into the numbers the panel shows. No DOM access.
 (() => {
   'use strict';
-  const { avg, monthKey, dayKey, quantile, fmt, pct, CORE_TAGS, problemUrl } = window.CTA;
+  const { avg, monthKey, dayKey, quantile, fmt, rt, pct, CORE_TAGS, problemUrl } = window.CTA;
 
   const normName = (n) => String(n).trim().toLowerCase().replace(/\s+/g, ' ');
   // A name match is used whenever exactly one problemset problem has that name.
@@ -186,7 +186,7 @@
       if (A.solved.length >= 20 && n < Math.max(3, A.solved.length * 0.02)) {
         weak.push({ tag, score: 3 - n, why: n ? `only ${n} solved` : 'never solved' });
       } else if (t && t.ratings.length >= 3 && A.overallAvg && t.avg < A.overallAvg - 120) {
-        weak.push({ tag, score: (A.overallAvg - t.avg) / 100, why: `avg ${fmt(t.avg)} vs your overall ${fmt(A.overallAvg)}` });
+        weak.push({ tag, score: (A.overallAvg - t.avg) / 100, why: `avg ${rt(t.avg)} vs your overall ${rt(A.overallAvg)}` });
       } else if (t && t.solved >= 5 && t.firstTryRate < overallFirst - 0.15) {
         weak.push({ tag, score: (overallFirst - t.firstTryRate) * 5, why: `first-try AC ${pct(t.firstTryRate)} vs overall ${pct(overallFirst)}` });
       }

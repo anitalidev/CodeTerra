@@ -5,6 +5,8 @@ window.CTA = window.CTA || {};
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = (n) => (n == null || Number.isNaN(n) ? '–' : Math.round(n).toLocaleString('en-US'));
+  // Ratings are shown plain (1400, not 1,400), as Codeforces does.
+  const rt = (n) => (n == null || Number.isNaN(n) ? '–' : String(Math.round(n)));
   const pct = (n) => (n == null || Number.isNaN(n) ? '–' : `${Math.round(n * 100)}%`);
   const avg = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null);
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -40,10 +42,13 @@ window.CTA = window.CTA || {};
     'data structures', 'binary search', 'graphs', 'number theory', 'strings', 'dfs and similar', 'trees',
     'two pointers', 'bitmasks', 'combinatorics', 'dsu', 'shortest paths', 'games', 'geometry', 'probabilities',
     'interactive', 'hashing', 'divide and conquer'];
+  // Codeforces' rank colours, as used for handles.
+  const ratingColor = (r) => (r < 1200 ? '#808080' : r < 1400 ? '#008000' : r < 1600 ? '#03a89e' : r < 1900 ? '#0000ff'
+    : r < 2100 ? '#aa00aa' : r < 2400 ? '#ff8c00' : '#ff0000');
   const problemUrl = (c, i, ps) => {
     if (!c) return ps ? `https://codeforces.com/problemsets/${ps}/problem/99999/${i}` : null;
     return c >= 100000 ? `https://codeforces.com/gym/${c}/problem/${i}` : `https://codeforces.com/contest/${c}/problem/${i}`;
   };
 
-  Object.assign(window.CTA, { sleep, esc, fmt, pct, avg, MONTHS, monthKey, monthLabel, dayKey, dateStr, quantile, niceStep, VERDICTS, PTYPES, CORE_TAGS, problemUrl });
+  Object.assign(window.CTA, { sleep, esc, fmt, rt, pct, avg, MONTHS, monthKey, monthLabel, dayKey, dateStr, quantile, niceStep, VERDICTS, PTYPES, CORE_TAGS, ratingColor, problemUrl });
 })();
