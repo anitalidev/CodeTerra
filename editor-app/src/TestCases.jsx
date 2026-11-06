@@ -96,9 +96,10 @@ function usageText(shown) {
 }
 
 // JDoodle starts its error messages with blank lines; drop them so the message begins at the top.
-// Normal output is left exactly as the program printed it.
+// Normal output is shown as printed, minus the single newline ending the last line (a textarea
+// would render it as an empty extra line).
 function tidyOutput({ output, status }) {
-    return status !== "ok" ? output.replace(/^(?:[ \t]*\r?\n)+/, "") : output;
+    return status !== "ok" ? output.replace(/^(?:[ \t]*\r?\n)+/, "") : output.replace(/\r?\n$/, "");
 }
 
 function newCase() {
