@@ -3,9 +3,7 @@ import os
 
 import aiohttp
 
-
-class BackendError(Exception):
-    """A failed backend call. The message is safe to show to the Discord user."""
+from errors import BackendError
 
 
 def _explain(status: int, body) -> str:
@@ -41,7 +39,10 @@ class BackendClient:
                 if res.status >= 400:
                     raise BackendError(_explain(res.status, body))
                 return body
-        except aiohttp.ClientError:
+        except aiohttp.ClientError as error:
+            # The Discord user gets a short message; the real cause goes to the bot's logs
+            print(f"Backend call failed: {method} {self.base_url + path} -> {error!r}", flush=True)
             raise BackendError("Could not reach the CodeTerra backend. Try again in a moment.")
         except TimeoutError:
+            print(f"Backend call timed out: {method} {self.base_url + path}", flush=True)
             raise BackendError("The CodeTerra backend took too long to answer.")
