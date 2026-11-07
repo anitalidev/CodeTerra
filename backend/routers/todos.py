@@ -1,13 +1,14 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.todo import CompletionMode, Todo, TodoStatus
 from schemas.todo import TodoCreate, TodoOut, TodoUpdate
+from services.todos import next_todo_number, update_open_todo
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 
@@ -48,26 +49,24 @@ async def create_todo(user_id: int, body: TodoCreate, db: AsyncSession = Depends
     ):
         raise HTTPException(status_code=409, detail="An identical open todo already exists")
 
-    # todo_number is max + 1 for this user. If two requests race for the same number the unique
-    # constraint rejects one of them, so try again with a fresh number.
-    for _ in range(3):
-        highest = await db.scalar(select(func.max(Todo.todo_number)).where(Todo.user_id == user_id))
-        todo = Todo(
-            user_id=user_id,
-            todo_number=(highest or 0) + 1,
-            contest_id=body.contest_id,
-            index=body.index,
-            description=body.description,
-            completion_mode=body.completion_mode,
-            status=TodoStatus.TODO,
-        )
-        db.add(todo)
-        try:
-            await db.commit()
-            return todo
-        except IntegrityError:
-            await db.rollback()
-    raise HTTPException(status_code=409, detail="Could not assign a todo number, try again")
+    # The counter bump and the insert share one transaction. The partial unique indexes are the real
+    # guard against duplicates; the check above only gives a friendlier message in the common case.
+    todo = Todo(
+        user_id=user_id,
+        todo_number=await next_todo_number(db, user_id),
+        contest_id=body.contest_id,
+        index=body.index,
+        description=body.description,
+        completion_mode=body.completion_mode,
+        status=TodoStatus.TODO,
+    )
+    db.add(todo)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="An identical open todo already exists")
+    return todo
 
 
 @router.get("/{user_id}", response_model=list[TodoOut])
@@ -143,7 +142,14 @@ async def edit_todo(user_id: int, todo_number: int, body: TodoUpdate, db: AsyncS
     ):
         raise HTTPException(status_code=409, detail="An identical open todo already exists")
 
-    todo.description = new_description
-    todo.status = new_status
-    await db.commit()
+    try:
+        updated = await update_open_todo(db, todo.id, description=new_description, status=new_status)
+        await db.commit()
+    except IntegrityError:  # a concurrent request created the duplicate after our check
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="An identical open todo already exists")
+    if not updated:  # a concurrent request completed or cancelled it after our read
+        raise HTTPException(status_code=409, detail="Todo is no longer open and cannot be changed")
+
+    await db.refresh(todo)
     return todo
