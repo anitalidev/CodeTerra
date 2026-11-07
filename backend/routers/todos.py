@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.todo import CompletionMode, Todo, TodoStatus
 from schemas.todo import TodoCreate, TodoOut, TodoUpdate
+from services.codeforces import problem_exists
 from services.todos import next_todo_number, update_open_todo
 
 router = APIRouter(prefix="/todos", tags=["todos"])
@@ -48,6 +49,14 @@ async def create_todo(user_id: int, body: TodoCreate, db: AsyncSession = Depends
             completion_mode=body.completion_mode, description=body.description,
     ):
         raise HTTPException(status_code=409, detail="An identical open todo already exists")
+
+    # Checked after the duplicate test, which is free: an existing todo already proves the problem is real.
+    # None means Codeforces couldn't tell us, and then the todo is allowed.
+    if await problem_exists(body.contest_id, body.index) is False:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Codeforces has no problem {body.index} in contest {body.contest_id}",
+        )
 
     # The counter bump and the insert share one transaction. The partial unique indexes are the real
     # guard against duplicates; the check above only gives a friendlier message in the common case.

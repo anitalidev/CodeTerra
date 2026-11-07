@@ -28,7 +28,7 @@ Slash replies are private to you. Typed replies are posted in the channel.
 - `backend_client.py`: async HTTP client for the CodeTerra backend (cogs never touch the database)
 - `errors.py`: errors whose message is safe to show the user
 - `cogs/todos.py`: slash commands (`/tosolve` and the `/todo` group), thin wrappers around `TodoActions`
-- `cogs/text_commands.py`: typed commands; `route_text()` lists them
+- `cogs/text_commands.py`: typed commands; `match_text()` lists them
 - `cogs/general.py`: `/ping`
 
-To give another action a typed form, add a line to `route_text()`.
+To give another action a typed form, add a line to `match_text()`.
