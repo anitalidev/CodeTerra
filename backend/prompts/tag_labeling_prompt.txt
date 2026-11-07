@@ -4,7 +4,7 @@ Allowed tags: $allowed_tags
 
 Rules:
 - Return at most $max_tags tags, ranked by importance. This is a hard maximum.
-- Prefer 1-5 tags when they are sufficient. Never fill unused slots for the purpose of filling.
+- Prefer at most 5 tags when they are sufficient. Never fill unused slots for the purpose of filling. It is valid to suggest 0 additional tags.
 - Tag the core solution techniques, not incidental operations.
 - When one tag already covers another, keep only the more specific one. Examples:
   - rerooting over tree dp
