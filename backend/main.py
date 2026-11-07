@@ -10,7 +10,7 @@ import models  # noqa: F401  (registers tables on Base.metadata)
 from database import Base, engine
 from openai import APIError, AuthenticationError
 from pydantic import ValidationError
-from routers import problems, runners
+from routers import problems, runners, todos
 from services.code_runner import RunnerAuthError, RunnerError, RunnerRateLimitError
 from services.language_repository import UnknownLanguage
 from services.tag_labeling import TagLabelingError
@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(problems.router)
 app.include_router(runners.router)
+app.include_router(todos.router)
 
 
 @app.get("/health")
