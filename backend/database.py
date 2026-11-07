@@ -4,7 +4,6 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-
 def async_database_url(raw_url: str):
     """Turns the connection string Neon gives you into one SQLAlchemy's async driver accepts."""
     url = make_url(raw_url)

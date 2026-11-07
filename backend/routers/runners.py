@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 from schemas.code_submission import CodeSubmission, RanTestCase, RunResult, Runners, RanTestCase
 from services.code_runner import ExecutionRequest
-from services.code_runner import ExecutionRequest
 from services.language_repository import LanguageOption
 from services.runner_registry import registry
 

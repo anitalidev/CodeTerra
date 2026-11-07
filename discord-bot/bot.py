@@ -24,6 +24,7 @@ async def main():
         raise SystemExit("Set DISCORD_TOKEN in discord-bot/.env")
     async with bot:
         await bot.load_extension("cogs.general")
+        await bot.load_extension("cogs.todos")
         await bot.start(token)
 
 
